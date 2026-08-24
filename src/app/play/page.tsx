@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CROPS,
   CUSTOMER_NAMES,
+  DISPLAY_BONUS_PER_ITEM,
+  DISPLAY_SLOTS,
   INITIAL_GOLD,
   INITIAL_SEEDS,
   PLOT_COUNT,
@@ -46,6 +48,8 @@ export default function PlayPage() {
   const [inventory, setInventory] = useState(createInventory);
   const [plots, setPlots] = useState(createPlots);
   const [order, setOrder] = useState<Order | null>(null);
+  const [display, setDisplay] = useState<CropId[]>([]);
+  const [seedQty, setSeedQty] = useState(1);
   const [log, setLog] = useState<string[]>([]);
 
   // 최근 소식이 위로 오도록 앞에 쌓고 6줄까지만 유지
@@ -135,9 +139,11 @@ export default function PlayPage() {
       return next;
     });
 
-    const price = useSignature
-      ? Math.round(recipe.price * recipe.signatureMultiplier)
+    const basePrice = useSignature
+      ? recipe.price * recipe.signatureMultiplier
       : recipe.price;
+    // 진열대에 놓인 변이 작물이 많을수록 모든 요리가 비싸게 팔린다
+    const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
 
     setGold((prev) => prev + price);
     setReputation((prev) => prev + (useSignature ? 3 : 1));
@@ -150,13 +156,42 @@ export default function PlayPage() {
     );
   };
 
-  const buySeed = () => {
-    const price = CROPS.tomato.seedPrice;
-    if (gold < price) return;
+  const seedPrice = CROPS.tomato.seedPrice;
+  const affordableSeeds = Math.floor(gold / seedPrice);
+  // 살 수 있는 수량을 넘겨 고른 채로 골드가 줄어들 수 있으므로 표시 단계에서 한 번 더 제한
+  const buyQty = Math.min(Math.max(seedQty, 1), Math.max(affordableSeeds, 1));
 
-    setGold((prev) => prev - price);
-    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + 1 }));
-    pushLog(`토마토 씨앗을 ${price}골드에 샀다.`);
+  const buySeed = () => {
+    const total = seedPrice * buyQty;
+    if (gold < total) return;
+
+    setGold((prev) => prev - total);
+    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + buyQty }));
+    setSeedQty(1);
+    pushLog(`토마토 씨앗 ${buyQty}개를 ${total}골드에 샀다.`);
+  };
+
+  const putOnDisplay = (cropId: CropId) => {
+    if (display.length >= DISPLAY_SLOTS || inventory[cropId].mutant <= 0) return;
+
+    setInventory((prev) => ({
+      ...prev,
+      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
+    }));
+    setDisplay((prev) => [...prev, cropId]);
+    pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
+  };
+
+  const takeFromDisplay = (index: number) => {
+    const cropId = display[index];
+    if (!cropId) return;
+
+    setInventory((prev) => ({
+      ...prev,
+      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant + 1 },
+    }));
+    setDisplay((prev) => prev.filter((_, i) => i !== index));
+    pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
   };
 
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로 요정이 씨앗을 준다
@@ -227,6 +262,7 @@ export default function PlayPage() {
           </p>
           <p className="mt-1 text-xs text-neutral-500">
             필요 재료: 토마토 {recipe.ingredients.tomato}개
+            {display.length > 0 && ` · 진열 보너스 +${display.length * 10}%`}
           </p>
         </section>
       )}
@@ -284,17 +320,76 @@ export default function PlayPage() {
         </div>
       </section>
 
+      <section>
+        <h2 className="mb-2 text-sm font-semibold">
+          진열대{' '}
+          <span className="font-normal text-neutral-500">
+            — 놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +10%)
+          </span>
+        </h2>
+        <div className="grid grid-cols-3 gap-2">
+          {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
+            const cropId = display[index];
+
+            if (!cropId) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => putOnDisplay('tomato')}
+                  disabled={inventory.tomato.mutant <= 0}
+                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
+                >
+                  빈 진열대
+                  <br />
+                  올리기
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={index}
+                onClick={() => takeFromDisplay(index)}
+                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-medium text-amber-800"
+              >
+                ✨ {CROPS[cropId].mutantName}
+                <br />
+                <span className="font-normal text-amber-600">내리기</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="flex flex-wrap items-center gap-4 rounded-lg bg-neutral-50 p-4 text-sm">
         <span>씨앗 {seeds.tomato}개</span>
         <span>토마토 {inventory.tomato.normal}개</span>
         <span className="text-amber-700">✨ 황금 토마토 {inventory.tomato.mutant}개</span>
-        <button
-          onClick={buySeed}
-          disabled={gold < CROPS.tomato.seedPrice}
-          className="ml-auto rounded-lg border border-neutral-300 px-3 py-1 disabled:opacity-40"
-        >
-          씨앗 구매 ({CROPS.tomato.seedPrice}골드)
-        </button>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
+            disabled={buyQty <= 1}
+            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-6 text-center tabular-nums">{buyQty}</span>
+          <button
+            onClick={() => setSeedQty((q) => q + 1)}
+            disabled={buyQty >= affordableSeeds}
+            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
+          >
+            +
+          </button>
+          <button
+            onClick={buySeed}
+            disabled={affordableSeeds < 1}
+            className="rounded-lg border border-neutral-300 px-3 py-1 disabled:opacity-40"
+          >
+            씨앗 구매 ({seedPrice * buyQty}골드)
+          </button>
+        </div>
       </section>
 
       <section className="flex gap-2">

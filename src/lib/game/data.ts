@@ -62,3 +62,9 @@ export const CUSTOMER_NAMES = [
 
 export const INITIAL_SEEDS = 3;
 export const INITIAL_GOLD = 0;
+
+/** 변이 작물을 진열할 수 있는 칸 수 */
+export const DISPLAY_SLOTS = 3;
+
+/** 진열품 1개당 모든 요리 판매가 상승률 */
+export const DISPLAY_BONUS_PER_ITEM = 0.1;

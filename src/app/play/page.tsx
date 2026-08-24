@@ -14,6 +14,7 @@ import {
   type CropId,
   type RecipeId,
 } from '@/lib/game/data';
+import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 
 interface Plot {
   cropId: CropId;
@@ -37,7 +38,8 @@ const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: 'tomatoP
 const rollMutation = (rate: number) => Math.random() < rate;
 
 export default function PlayPage() {
-  const [phase, setPhase] = useState<'naming' | 'playing'>('naming');
+  // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
+  const [phase, setPhase] = useState<'loading' | 'naming' | 'playing'>('loading');
   const [nameInput, setNameInput] = useState('');
   const [playerName, setPlayerName] = useState('');
 
@@ -65,6 +67,42 @@ export default function PlayPage() {
     return () => clearInterval(timer);
   }, [phase]);
 
+  // 첫 진입 시 저장된 기록이 있으면 이어서 시작한다
+  useEffect(() => {
+    loadGame()
+      .then((saved) => {
+        if (!saved) {
+          setPhase('naming');
+          return;
+        }
+
+        setPlayerName(saved.playerName);
+        setGold(saved.gold);
+        // 씨앗 저장 이전에 만들어진 기록에는 값이 없으므로 초기값으로 대체한다
+        setSeeds({ tomato: saved.seeds ?? INITIAL_SEEDS });
+        setInventory({ tomato: { normal: saved.tomato, mutant: saved.goldenTomato } });
+        setDisplay(saved.display);
+        setOrder(createOrder());
+        setPhase('playing');
+        pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
+      })
+      .catch(() => setPhase('naming'));
+  }, [pushLog]);
+
+  // 저장 대상이 바뀔 때마다 기록한다 (밭 상태와 경과 틱은 저장하지 않음)
+  useEffect(() => {
+    if (phase !== 'playing') return;
+
+    saveGame({
+      playerName,
+      gold,
+      seeds: seeds.tomato,
+      tomato: inventory.tomato.normal,
+      goldenTomato: inventory.tomato.mutant,
+      display,
+    }).catch(() => undefined);
+  }, [phase, playerName, gold, seeds, inventory, display]);
+
   const startGame = () => {
     const name = nameInput.trim();
     if (!name) return;
@@ -83,7 +121,6 @@ export default function PlayPage() {
     setPlots((prev) =>
       prev.map((plot, i) => (i === index ? { cropId: 'tomato', plantedTick: tick } : plot)),
     );
-    pushLog('토마토 씨앗을 심었다.');
   };
 
   const harvest = (index: number) => {
@@ -103,7 +140,10 @@ export default function PlayPage() {
     }));
     setPlots((prev) => prev.map((p, i) => (i === index ? null : p)));
 
-    pushLog(isMutant ? `✨ ${crop.mutantName}이(가) 자랐다! 요정이 반짝인다.` : `${crop.name}을(를) 수확했다.`);
+    // 일반 수확은 너무 잦아 로그를 남기지 않고, 드물게 나오는 변이만 알린다
+    if (isMutant) {
+      pushLog(`✨ ${crop.mutantName}이(가) 자랐다! 요정이 반짝인다.`);
+    }
   };
 
   const recipe = order ? RECIPES[order.recipeId] : null;
@@ -203,6 +243,20 @@ export default function PlayPage() {
     pushLog('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
   };
 
+  const resetGame = () => {
+    clearGame()
+      .then(() => window.location.reload())
+      .catch(() => undefined);
+  };
+
+  if (phase === 'loading') {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-sm text-neutral-500">
+        기록을 불러오는 중...
+      </main>
+    );
+  }
+
   if (phase === 'naming') {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
@@ -243,9 +297,12 @@ export default function PlayPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
       <header className="flex items-center justify-between border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
-        <div className="flex gap-4 text-sm text-neutral-600">
+        <div className="flex items-center gap-4 text-sm text-neutral-600">
           <span>💰 {gold}골드</span>
           <span>⏱ 플레이 시간: {tick}</span>
+          <button onClick={resetGame} className="text-xs text-neutral-400 underline">
+            처음부터
+          </button>
         </div>
       </header>
       <section className="mx-auto">

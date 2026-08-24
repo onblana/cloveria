@@ -43,7 +43,8 @@ export default function PlayPage() {
 
   const [tick, setTick] = useState(0);
   const [gold, setGold] = useState(INITIAL_GOLD);
-  const [reputation, setReputation] = useState(0);
+  // TODO: 평판은 쓰이는 곳이 없어 주석처리. 손님 종류·레시피 해금을 붙일 때 다시 도입할 것
+  // const [reputation, setReputation] = useState(0);
   const [seeds, setSeeds] = useState(createSeeds);
   const [inventory, setInventory] = useState(createInventory);
   const [plots, setPlots] = useState(createPlots);
@@ -146,7 +147,6 @@ export default function PlayPage() {
     const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
 
     setGold((prev) => prev + price);
-    setReputation((prev) => prev + (useSignature ? 3 : 1));
     setOrder(createOrder());
 
     pushLog(
@@ -157,18 +157,14 @@ export default function PlayPage() {
   };
 
   const seedPrice = CROPS.tomato.seedPrice;
-  const affordableSeeds = Math.floor(gold / seedPrice);
-  // 살 수 있는 수량을 넘겨 고른 채로 골드가 줄어들 수 있으므로 표시 단계에서 한 번 더 제한
-  const buyQty = Math.min(Math.max(seedQty, 1), Math.max(affordableSeeds, 1));
+  const seedTotal = seedPrice * seedQty;
 
   const buySeed = () => {
-    const total = seedPrice * buyQty;
-    if (gold < total) return;
+    if (gold < seedTotal) return;
 
-    setGold((prev) => prev - total);
-    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + buyQty }));
-    setSeedQty(1);
-    pushLog(`토마토 씨앗 ${buyQty}개를 ${total}골드에 샀다.`);
+    setGold((prev) => prev - seedTotal);
+    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + seedQty }));
+    pushLog(`토마토 씨앗 ${seedQty}개를 ${seedTotal}골드에 샀다.`);
   };
 
   const putOnDisplay = (cropId: CropId) => {
@@ -204,7 +200,7 @@ export default function PlayPage() {
 
   const receiveGiftSeed = () => {
     setSeeds((prev) => ({ ...prev, tomato: prev.tomato + 1 }));
-    pushLog('요정이 조용히 씨앗 하나를 놓고 갔다.');
+    pushLog('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
   };
 
   if (phase === 'naming') {
@@ -248,12 +244,35 @@ export default function PlayPage() {
       <header className="flex items-center justify-between border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex gap-4 text-sm text-neutral-600">
-          <span>🪙 {gold}골드</span>
-          <span>⭐ 평판 {reputation}</span>
-          <span>⏱ {tick}틱</span>
+          <span>💰 {gold}골드</span>
+          <span>⏱ 플레이 시간: {tick}</span>
         </div>
       </header>
-
+      <section className="mx-auto">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
+            disabled={seedQty <= 1}
+            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-6 text-center tabular-nums">{seedQty}</span>
+          <button
+            onClick={() => setSeedQty((q) => q + 1)}
+            className="h-7 w-7 rounded border border-neutral-300"
+          >
+            +
+          </button>
+          <button
+            onClick={buySeed}
+            disabled={gold < seedTotal}
+            className="rounded-lg border border-neutral-300 px-3 py-1 disabled:opacity-40"
+          >
+            씨앗 구매 ({seedTotal}골드)
+          </button>
+        </div>
+      </section>
       {order && recipe && (
         <section className="rounded-lg bg-amber-50 p-4">
           <h2 className="text-sm font-semibold text-amber-900">주문</h2>
@@ -365,31 +384,6 @@ export default function PlayPage() {
         <span>씨앗 {seeds.tomato}개</span>
         <span>토마토 {inventory.tomato.normal}개</span>
         <span className="text-amber-700">✨ 황금 토마토 {inventory.tomato.mutant}개</span>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
-            disabled={buyQty <= 1}
-            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
-          >
-            −
-          </button>
-          <span className="w-6 text-center tabular-nums">{buyQty}</span>
-          <button
-            onClick={() => setSeedQty((q) => q + 1)}
-            disabled={buyQty >= affordableSeeds}
-            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
-          >
-            +
-          </button>
-          <button
-            onClick={buySeed}
-            disabled={affordableSeeds < 1}
-            className="rounded-lg border border-neutral-300 px-3 py-1 disabled:opacity-40"
-          >
-            씨앗 구매 ({seedPrice * buyQty}골드)
-          </button>
-        </div>
       </section>
 
       <section className="flex gap-2">

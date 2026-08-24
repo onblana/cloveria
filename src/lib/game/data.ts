@@ -12,7 +12,7 @@ export interface Crop {
   /** 심은 뒤 수확 가능해질 때까지 필요한 틱 수 */
   growTicks: number;
   seedPrice: number;
-  /** 수확 시 변이종이 나올 확률 */
+  /** 수확 시 변이종이 나올 확률. TODO: 개발 중 확인이 쉽도록 높여둔 값, 밸런싱 때 낮출 것 */
   mutationRate: number;
   mutantName: string;
 }

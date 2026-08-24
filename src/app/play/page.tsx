@@ -294,41 +294,40 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
-      <header className="flex items-center justify-between border-b border-neutral-200 pb-4">
+    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
           <span>💰 {gold}골드</span>
-          <span>⏱ 플레이 시간: {tick}</span>
+          <span>⏱ {tick}</span>
           <button onClick={resetGame} className="text-xs text-neutral-400 underline">
             처음부터
           </button>
         </div>
       </header>
-      <section className="mx-auto">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
-            disabled={seedQty <= 1}
-            className="h-7 w-7 rounded border border-neutral-300 disabled:opacity-40"
-          >
-            −
-          </button>
-          <span className="w-6 text-center tabular-nums">{seedQty}</span>
-          <button
-            onClick={() => setSeedQty((q) => q + 1)}
-            className="h-7 w-7 rounded border border-neutral-300"
-          >
-            +
-          </button>
-          <button
-            onClick={buySeed}
-            disabled={gold < seedTotal}
-            className="rounded-lg border border-neutral-300 px-3 py-1 disabled:opacity-40"
-          >
-            씨앗 구매 ({seedTotal}골드)
-          </button>
-        </div>
+
+      <section className="flex items-center gap-2">
+        <button
+          onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
+          disabled={seedQty <= 1}
+          className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
+        >
+          −
+        </button>
+        <span className="w-8 text-center tabular-nums">{seedQty}</span>
+        <button
+          onClick={() => setSeedQty((q) => q + 1)}
+          className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg"
+        >
+          +
+        </button>
+        <button
+          onClick={buySeed}
+          disabled={gold < seedTotal}
+          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm disabled:opacity-40"
+        >
+          씨앗 구매 ({seedTotal}골드)
+        </button>
       </section>
       {order && recipe && (
         <section className="rounded-lg bg-amber-50 p-4">
@@ -397,12 +396,10 @@ export default function PlayPage() {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold">
-          진열대{' '}
-          <span className="font-normal text-neutral-500">
-            — 놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +10%)
-          </span>
-        </h2>
+        <h2 className="text-sm font-semibold">진열대</h2>
+        <p className="mb-2 text-xs text-neutral-500">
+          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +10%)
+        </p>
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
             const cropId = display[index];
@@ -447,14 +444,14 @@ export default function PlayPage() {
         <button
           onClick={() => cook(false)}
           disabled={!canCook}
-          className="flex-1 rounded-lg bg-green-600 py-2 text-sm font-medium text-white disabled:bg-neutral-300"
+          className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-medium text-white disabled:bg-neutral-300"
         >
           요리해서 내놓기
         </button>
         <button
           onClick={() => cook(true)}
           disabled={!canCookSignature}
-          className="flex-1 rounded-lg bg-amber-500 py-2 text-sm font-medium text-white disabled:bg-neutral-300"
+          className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-medium text-white disabled:bg-neutral-300"
         >
           ✨ 시그니처로 만들기
         </button>
@@ -463,7 +460,7 @@ export default function PlayPage() {
       {isStuck && (
         <button
           onClick={receiveGiftSeed}
-          className="rounded-lg border border-green-300 bg-green-50 py-2 text-sm text-green-800"
+          className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
         >
           🍀 요정에게 도움 청하기
         </button>

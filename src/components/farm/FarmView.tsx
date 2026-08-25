@@ -1,0 +1,214 @@
+'use client';
+
+import { useState } from 'react';
+
+import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { CROPS, CROP_EMOJI, type CropId, type Plot } from '@/lib/game/data';
+
+interface FarmViewProps {
+  gold: number;
+  seeds: Record<CropId, number>;
+  plots: (Plot | null)[];
+  tick: number;
+  cropIds: CropId[];
+  /** 진행이 막혀 요정의 도움이 필요한 상태인지 */
+  isStuck: boolean;
+  onBuySeed: (cropId: CropId, qty: number) => void;
+  onPlant: (index: number, cropId: CropId) => void;
+  onHarvest: (index: number) => void;
+  onReceiveGiftSeed: () => void;
+}
+
+/** 농사 단계(아침·오후·밤) 화면 */
+export function FarmView({
+  gold,
+  seeds,
+  plots,
+  tick,
+  cropIds,
+  isStuck,
+  onBuySeed,
+  onPlant,
+  onHarvest,
+  onReceiveGiftSeed,
+}: FarmViewProps) {
+  // 씨앗 가게에서 고른 작물과 수량. 저장 대상이 아니라 이 화면에서만 쓰는 값이다
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [shopCrop, setShopCrop] = useState<CropId | null>(null);
+  const [seedQty, setSeedQty] = useState(1);
+  // 심을 작물을 고르는 중인 밭 칸. null이면 창이 닫힌 상태다
+  const [plantTarget, setPlantTarget] = useState<number | null>(null);
+
+  const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
+  const canBuy = shopCrop !== null && gold >= seedTotal;
+
+  const openShop = () => {
+    // 창을 열 때마다 고른 작물과 수량을 초기 상태로 되돌린다
+    setShopCrop(null);
+    setSeedQty(1);
+    setIsShopOpen(true);
+  };
+
+  const buy = () => {
+    if (!shopCrop || !canBuy) return;
+
+    onBuySeed(shopCrop, seedQty);
+    setIsShopOpen(false);
+  };
+
+  const plant = (cropId: CropId) => {
+    if (plantTarget === null || seeds[cropId] <= 0) return;
+
+    onPlant(plantTarget, cropId);
+    setPlantTarget(null);
+  };
+
+  return (
+    <>
+      <button
+        onClick={openShop}
+        className="h-11 rounded-lg border border-neutral-300 px-3 text-sm"
+      >
+        🌱 씨앗 사러 가기
+      </button>
+
+      <section>
+        <h2 className="mb-2 text-base font-bold">밭</h2>
+        {/* 5열 고정. 밭 확장으로 칸이 늘면 아래로 행이 하나씩 늘어난다 */}
+        <div className="grid grid-cols-5 gap-2">
+          {plots.map((plot, index) => {
+            if (!plot) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => setPlantTarget(index)}
+                  className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs font-light text-neutral-400"
+                >
+                  빈 밭
+                  <br />
+                  심기
+                </button>
+              );
+            }
+
+            const crop = CROPS[plot.cropId];
+            const grown = tick - plot.plantedTick;
+            const ready = grown >= crop.growTicks;
+
+            return (
+              <button
+                key={index}
+                onClick={() => onHarvest(index)}
+                disabled={!ready}
+                className={`h-24 rounded-lg border text-xs ${
+                  ready
+                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                    : 'border-neutral-200 text-neutral-500'
+                }`}
+              >
+                {ready ? (
+                  <>
+                    {CROP_EMOJI[plot.cropId]}
+                    <br />
+                    수확하기
+                  </>
+                ) : (
+                  <>
+                    🌱
+                    <br />
+                    {Math.floor((grown / crop.growTicks) * 100)}%
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* TODO: 밭 확장 업그레이드 상점. 여기에 '밭 넓히기' 버튼이 들어간다 */}
+
+      {isStuck && (
+        <button
+          onClick={onReceiveGiftSeed}
+          className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
+        >
+          🍀 요정에게 도움 청하기
+        </button>
+      )}
+
+      {isShopOpen && (
+        <CropPickerModal
+          title="씨앗 사기"
+          description={`가진 골드 ${gold}골드`}
+          onClose={() => setIsShopOpen(false)}
+        >
+          {cropIds.map((cropId) => (
+            <button
+              key={cropId}
+              onClick={() => setShopCrop(cropId)}
+              className={`flex min-h-12 w-full items-center justify-between rounded-lg border px-4 text-sm ${
+                shopCrop === cropId
+                  ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                  : 'border-neutral-300'
+              }`}
+            >
+              <span>
+                {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+              </span>
+              <span className="tabular-nums text-neutral-500">
+                {CROPS[cropId].seedPrice}골드 · 보유 {seeds[cropId]}개
+              </span>
+            </button>
+          ))}
+
+          {/* 작물을 고르기 전에는 살 수량을 정할 수 없다 */}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
+              disabled={seedQty <= 1}
+              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
+            >
+              −
+            </button>
+            <span className="w-8 text-center tabular-nums">{seedQty}</span>
+            <button
+              onClick={() => setSeedQty((q) => q + 1)}
+              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg"
+            >
+              +
+            </button>
+            <button
+              onClick={buy}
+              disabled={!canBuy}
+              className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
+            >
+              {shopCrop ? `${seedTotal}골드에 사기` : '작물을 고르세요'}
+            </button>
+          </div>
+        </CropPickerModal>
+      )}
+
+      {plantTarget !== null && (
+        <CropPickerModal
+          title="심을 작물 고르기"
+          description="씨앗이 있는 작물만 심을 수 있다"
+          onClose={() => setPlantTarget(null)}
+        >
+          {cropIds.map((cropId) => (
+            <button
+              key={cropId}
+              onClick={() => plant(cropId)}
+              disabled={seeds[cropId] <= 0}
+              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm disabled:opacity-40"
+            >
+              <span>
+                {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+              </span>
+              <span className="tabular-nums text-neutral-500">씨앗 {seeds[cropId]}개</span>
+            </button>
+          ))}
+        </CropPickerModal>
+      )}
+    </>
+  );
+}

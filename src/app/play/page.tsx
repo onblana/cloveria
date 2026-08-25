@@ -4,8 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
+import { BistroView } from '@/components/bistro/BistroView';
+import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
+  CROP_EMOJI,
   CUSTOMER_NAMES,
   DISPLAY_BONUS_PER_ITEM,
   DISPLAY_SLOTS,
@@ -15,7 +19,9 @@ import {
   createEmptyPlots,
   getDayNumber,
   getDayPhase,
+  getDisplayBonusPercent,
   type CropId,
+  type Inventory,
   type RecipeId,
 } from '@/lib/game/data';
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
@@ -26,14 +32,8 @@ interface Order {
   recipeId: RecipeId;
 }
 
-/** 작물별 보유 수량 (일반 / 변이) */
-type Inventory = Record<CropId, { normal: number; mutant: number }>;
-
 const CROP_IDS = Object.keys(CROPS) as CropId[];
 const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
-
-/** 밭과 탭에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
-const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
 
 /** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
 const STARTER_CROP: CropId = 'tomato';
@@ -57,9 +57,6 @@ const rollMutation = (rate: number) => Math.random() < rate;
 const LOG_LINES = 3;
 const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
 
-/** 진열 보너스를 화면에 보여줄 퍼센트 값으로 바꾼다 */
-const bonusPercent = (count: number) => Math.round(count * DISPLAY_BONUS_PER_ITEM * 100);
-
 export default function PlayPage() {
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
   const [phase, setPhase] = useState<'loading' | 'naming' | 'playing'>('loading');
@@ -75,12 +72,9 @@ export default function PlayPage() {
   const [plots, setPlots] = useState(createEmptyPlots);
   const [order, setOrder] = useState<Order | null>(null);
   const [display, setDisplay] = useState<CropId[]>([]);
-  const [seedQty, setSeedQty] = useState(1);
   const [log, setLog] = useState<string[]>([]);
-  // 씨앗 구매·파종·진열이 모두 이 선택을 따른다
-  const [selectedCrop, setSelectedCrop] = useState<CropId>(STARTER_CROP);
   // 진열대 빈 칸을 눌렀을 때 올릴 작물을 고르는 창
-  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [isDisplayPickerOpen, setIsDisplayPickerOpen] = useState(false);
 
   const pushLog = useCallback((message: string) => {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
@@ -150,13 +144,11 @@ export default function PlayPage() {
     pushLog(`${name}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
   };
 
-  const plant = (index: number) => {
-    if (plots[index] || seeds[selectedCrop] <= 0) return;
+  const plant = (index: number, cropId: CropId) => {
+    if (plots[index] || seeds[cropId] <= 0) return;
 
-    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] - 1 }));
-    setPlots((prev) =>
-      prev.map((plot, i) => (i === index ? { cropId: selectedCrop, plantedTick: tick } : plot)),
-    );
+    setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] - 1 }));
+    setPlots((prev) => prev.map((plot, i) => (i === index ? { cropId, plantedTick: tick } : plot)));
   };
 
   const harvest = (index: number) => {
@@ -232,15 +224,13 @@ export default function PlayPage() {
     );
   };
 
-  const seedPrice = CROPS[selectedCrop].seedPrice;
-  const seedTotal = seedPrice * seedQty;
+  const buySeed = (cropId: CropId, qty: number) => {
+    const total = CROPS[cropId].seedPrice * qty;
+    if (gold < total) return;
 
-  const buySeed = () => {
-    if (gold < seedTotal) return;
-
-    setGold((prev) => prev - seedTotal);
-    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] + seedQty }));
-    pushLog(`${CROPS[selectedCrop].name} 씨앗 ${seedQty}개를 ${seedTotal}골드에 샀다.`);
+    setGold((prev) => prev - total);
+    setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
+    pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };
 
   const putOnDisplay = (cropId: CropId) => {
@@ -251,7 +241,7 @@ export default function PlayPage() {
       [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
     }));
     setDisplay((prev) => [...prev, cropId]);
-    setIsPickerOpen(false);
+    setIsDisplayPickerOpen(false);
     pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
@@ -360,154 +350,30 @@ export default function PlayPage() {
         ))}
       </section>
 
-      {/* 심을 작물 선택. 장사 단계에서는 감춰짐 */}
       {dayPhase.kind === 'farm' && (
-        <section className="flex gap-2">
-          {CROP_IDS.map((cropId) => (
-            <button
-              key={cropId}
-              onClick={() => setSelectedCrop(cropId)}
-              className={`h-11 flex-1 rounded-lg border text-sm ${
-                selectedCrop === cropId
-                  ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                  : 'border-neutral-300 text-neutral-600'
-              }`}
-            >
-              {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-            </button>
-          ))}
-        </section>
-      )}
-
-      {dayPhase.kind === 'farm' && (
-        <>
-          <section className="flex items-center gap-2">
-            <button
-              onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
-              disabled={seedQty <= 1}
-              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
-            >
-              −
-            </button>
-            <span className="w-8 text-center tabular-nums">{seedQty}</span>
-            <button
-              onClick={() => setSeedQty((q) => q + 1)}
-              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg"
-            >
-              +
-            </button>
-            <button
-              onClick={buySeed}
-              disabled={gold < seedTotal}
-              className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm disabled:opacity-40"
-            >
-              {CROPS[selectedCrop].name} 씨앗 구매 ({seedTotal}골드)
-            </button>
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-base font-bold">밭</h2>
-            <div className="grid grid-cols-5 gap-2">
-              {plots.map((plot, index) => {
-                if (!plot) {
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => plant(index)}
-                      disabled={seeds[selectedCrop] <= 0}
-                      className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
-                    >
-                      <span className="text-xs font-light">{CROPS[selectedCrop].name} 심기</span>
-                    </button>
-                  );
-                }
-
-                const crop = CROPS[plot.cropId];
-                const grown = tick - plot.plantedTick;
-                const ready = grown >= crop.growTicks;
-
-                return (
-                  <button
-                    key={index}
-                    onClick={() => harvest(index)}
-                    disabled={!ready}
-                    className={`h-24 rounded-lg border text-xs ${
-                      ready
-                        ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                        : 'border-neutral-200 text-neutral-500'
-                    }`}
-                  >
-                    {ready ? (
-                      <>
-                        {CROP_EMOJI[plot.cropId]}
-                        <br />
-                        수확하기
-                      </>
-                    ) : (
-                      <>
-                        🌱
-                        <br />
-                        {Math.floor((grown / crop.growTicks) * 100)}%
-                      </>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          {isStuck && (
-            <button
-              onClick={receiveGiftSeed}
-              className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
-            >
-              🍀 요정에게 도움 청하기
-            </button>
-          )}
-        </>
+        <FarmView
+          gold={gold}
+          seeds={seeds}
+          plots={plots}
+          tick={tick}
+          cropIds={CROP_IDS}
+          isStuck={isStuck}
+          onBuySeed={buySeed}
+          onPlant={plant}
+          onHarvest={harvest}
+          onReceiveGiftSeed={receiveGiftSeed}
+        />
       )}
 
       {dayPhase.kind === 'bistro' && (
-        <>
-          {order && recipe && (
-            <section className="rounded-lg bg-amber-50 p-4">
-              <h2 className="text-sm font-semibold text-amber-900">주문</h2>
-              <p className="mt-1 text-sm">
-                {order.customer} — <strong>{recipe.name}</strong>
-              </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                필요 재료:{' '}
-                {(Object.entries(recipe.ingredients) as [CropId, number][])
-                  .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개`)
-                  .join(', ')}
-                {display.length > 0 && ` · 진열 보너스 +${bonusPercent(display.length)}%`}
-              </p>
-            </section>
-          )}
-
-          {canCook || canCookSignature ? (
-            <section className="flex gap-2">
-              <button
-                onClick={() => cook(false)}
-                disabled={!canCook}
-                className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-              >
-                🍳 요리해서 내놓기
-              </button>
-              <button
-                onClick={() => cook(true)}
-                disabled={!canCookSignature}
-                className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-              >
-                ✨ 시그니처로 만들기
-              </button>
-            </section>
-          ) : (
-            <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
-              요리 재료가 모자라 더 이상 장사를 할 수 없다.
-            </p>
-          )}
-        </>
+        <BistroView
+          customer={order?.customer ?? null}
+          recipe={recipe}
+          displayCount={display.length}
+          canCook={canCook}
+          canCookSignature={canCookSignature}
+          onCook={cook}
+        />
       )}
 
       <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
@@ -538,7 +404,7 @@ export default function PlayPage() {
       <section>
         <h2 className="text-sm font-semibold">진열대</h2>
         <p className="mb-2 text-xs text-neutral-500">
-          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
+          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{getDisplayBonusPercent(1)}%)
         </p>
         <div className="grid grid-cols-6 gap-2">
           {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
@@ -548,7 +414,7 @@ export default function PlayPage() {
               return (
                 <button
                   key={index}
-                  onClick={() => setIsPickerOpen(true)}
+                  onClick={() => setIsDisplayPickerOpen(true)}
                   className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
                 >
                   빈 진열대
@@ -573,46 +439,27 @@ export default function PlayPage() {
         </div>
       </section>
 
-      {isPickerOpen && (
-        <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          {/* 바깥을 눌러도 닫히도록 오버레이 자체를 버튼으로 둔다 */}
-          <button
-            aria-label="닫기"
-            onClick={() => setIsPickerOpen(false)}
-            className="absolute inset-0 cursor-default"
-          />
-
-          <div className="relative w-full max-w-sm rounded-2xl bg-white p-4">
-            <h2 className="text-sm font-semibold">진열할 작물 고르기</h2>
-            <p className="mt-1 text-xs text-neutral-500">변이 작물만 진열할 수 있다</p>
-
-            <div className="mt-3 space-y-2">
-              {CROP_IDS.map((cropId) => {
-                const count = inventory[cropId].mutant;
-
-                return (
-                  <button
-                    key={cropId}
-                    onClick={() => putOnDisplay(cropId)}
-                    className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm"
-                  >
-                    <span>
-                      {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].mutantName}
-                    </span>
-                    <span className="tabular-nums text-neutral-500">{count}개</span>
-                  </button>
-                );
-              })}
-            </div>
-
+      {isDisplayPickerOpen && (
+        <CropPickerModal
+          title="진열할 작물 고르기"
+          description="변이 작물만 진열할 수 있다"
+          onClose={() => setIsDisplayPickerOpen(false)}
+        >
+          {CROP_IDS.map((cropId) => (
             <button
-              onClick={() => setIsPickerOpen(false)}
-              className="mt-3 min-h-12 w-full rounded-lg border border-neutral-300 text-sm text-neutral-600"
+              key={cropId}
+              onClick={() => putOnDisplay(cropId)}
+              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm"
             >
-              닫기
+              <span>
+                {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].mutantName}
+              </span>
+              <span className="tabular-nums text-neutral-500">
+                {inventory[cropId].mutant}개
+              </span>
             </button>
-          </div>
-        </div>
+          ))}
+        </CropPickerModal>
       )}
     </main>
   );

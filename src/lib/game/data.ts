@@ -28,8 +28,12 @@ export const getDayNumber = (tick: number) => Math.floor(tick / PHASES_PER_DAY) 
 
 export const getDayPhase = (tick: number) => DAY_PHASES[tick % PHASES_PER_DAY];
 
-// 밭 칸 수
-export const PLOT_COUNT = 5;
+/**
+ * 밭 칸 수. 5열 고정이라 칸 수가 늘면 아래로 행이 하나씩 늘어난다.
+ * TODO: 상점에서 밭 확장을 사면 이 값이 커진다. 고정값 대신 저장된 확장 단계에서
+ *       계산하도록 바꾸고, 저장 형식에도 확장 단계를 추가할 것 (지금은 초기값 10칸)
+ */
+export const PLOT_COUNT = 10;
 
 export type CropId = 'tomato' | 'corn';
 
@@ -60,6 +64,12 @@ export const CROPS: Record<CropId, Crop> = {
     mutantName: '황금 옥수수',
   },
 };
+
+/** 밭과 목록에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
+export const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
+
+/** 작물별 보유 수량 (일반 / 변이) */
+export type Inventory = Record<CropId, { normal: number; mutant: number }>;
 
 /** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 틱과 비교해 성장도를 계산할 수 있다 */
 export interface Plot {
@@ -121,3 +131,7 @@ export const DISPLAY_SLOTS = 6;
 
 /** 진열품 1개당 모든 요리 판매가 상승률 */
 export const DISPLAY_BONUS_PER_ITEM = 0.05;
+
+/** 진열 보너스를 화면에 보여줄 퍼센트 값으로 바꾼다 */
+export const getDisplayBonusPercent = (count: number) =>
+  Math.round(count * DISPLAY_BONUS_PER_ITEM * 100);

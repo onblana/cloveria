@@ -1,8 +1,11 @@
 import {
+  createFriendship,
   createDailyRecord,
   createEmptyPlots,
   INITIAL_SEEDS,
+  type Friendship,
   type CropId,
+  type CustomerId,
   type DailyRecord,
   type Plot,
 } from './data';
@@ -18,6 +21,8 @@ const SAVE_KEY = 'current';
  */
 export type SeedStock = Partial<Record<CropId, number>>;
 export type CropStock = Partial<Record<CropId, { normal: number; mutant: number }>>;
+/** 손님이 늘어도 예전 기록을 읽을 수 있도록 부분 기록을 허용한다 */
+export type FriendshipStock = Partial<Record<CustomerId, number>>;
 
 export interface SaveData {
   playerName: string;
@@ -30,11 +35,13 @@ export interface SaveData {
   display: CropId[];
   /** 오늘치 성과. 새로고침해도 하루 결과가 어긋나지 않도록 함께 저장한다 */
   daily: DailyRecord;
+  /** 손님별 친밀도 */
+  friendship: Friendship;
 }
 
-/** 날짜·밭·하루 집계를 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
-type PartialSaveData = Omit<SaveData, 'tick' | 'plots' | 'daily'> &
-  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily'>>;
+/** 날짜·밭·하루 집계·친밀도를 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
+type PartialSaveData = Omit<SaveData, 'tick' | 'plots' | 'daily' | 'friendship'> &
+  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily'>> & { friendship?: FriendshipStock };
 
 /** 토마토만 저장하던 시절의 형식 */
 interface LegacySaveData {
@@ -68,6 +75,7 @@ const normalize = (data: PartialSaveData): SaveData => ({
   tick: data.tick ?? 0,
   plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
   daily: data.daily ?? createDailyRecord(),
+  friendship: { ...createFriendship(), ...data.friendship },
 });
 
 function openDatabase(): Promise<IDBDatabase> {

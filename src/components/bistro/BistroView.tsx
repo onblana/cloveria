@@ -1,9 +1,15 @@
 'use client';
 
-import { CROPS, getDisplayBonusPercent, type CropId, type Recipe } from '@/lib/game/data';
+import {
+  CROPS,
+  getDisplayBonusPercent,
+  type CropId,
+  type Customer,
+  type Recipe,
+} from '@/lib/game/data';
 
 interface BistroViewProps {
-  customer: string | null;
+  customer: Customer | null;
   recipe: Recipe | null;
   /** 진열대에 올라간 변이 작물 수. 판매가 보너스 계산에 쓰인다 */
   displayCount: number;
@@ -25,14 +31,16 @@ export function BistroView({
     <>
       {customer && recipe && (
         <section className="rounded-lg bg-amber-50 p-4">
-          <h2 className="text-sm font-semibold text-amber-900">주문</h2>
+          <h2 className="text-sm font-semibold text-amber-600">
+            {customer.greeting} - {customer.name} 방문
+          </h2>
           <p className="mt-1 text-sm">
-            {customer} — <strong>{recipe.name}</strong>
+            주문한 요리는 <strong>{recipe.name}</strong>!
           </p>
-          <p className="mt-1 text-xs text-neutral-500">
-            필요 재료:{' '}
+          <p className="mt-1 text-sm text-green-700">
+            요리 재료:{' '}
             {(Object.entries(recipe.ingredients) as [CropId, number][])
-              .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개`)
+              .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개 필요`)
               .join(', ')}
             {displayCount > 0 && ` · 진열 보너스 +${getDisplayBonusPercent(displayCount)}%`}
           </p>
@@ -59,6 +67,8 @@ export function BistroView({
       ) : (
         <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
           요리 재료가 모자라 더 이상 장사를 할 수 없다.
+          <br />
+          농사를 더 지어야겠다.
         </p>
       )}
     </>

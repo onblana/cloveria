@@ -124,18 +124,138 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   },
 };
 
-export const CUSTOMER_NAMES = [
-  '마을 이장',
-  '우체부 아저씨',
-  '꽃집 누나',
-  '옆집 할아버지',
-  '떠돌이 상인',
-  '이장의 손녀딸',
-  '은둔 청년',
-  '세탁소 아주머니',
-  '잡화점 주인',
-  '생선가게 사장님'
+export type CustomerId =
+  | 'headman'
+  | 'postman'
+  | 'florist'
+  | 'grandpa'
+  | 'peddler'
+  | 'granddaughter'
+  | 'hermit'
+  | 'laundress'
+  | 'shopkeeper'
+  | 'fishmonger';
+
+export interface Customer {
+  id: CustomerId;
+  name: string;
+  /** 식당에 들어서며 건네는 첫마디 */
+  greeting: string;
+  /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
+  postposition1: '와' | '과';
+  postposition2: '는' | '은';
+}
+
+export const CUSTOMERS: Record<CustomerId, Customer> = {
+  headman: {
+    id: 'headman',
+    name: '마을 이장',
+    greeting: '안녕하신가',
+    postposition1: '과',
+    postposition2: '은',
+  },
+  postman: {
+    id: 'postman',
+    name: '우체부 아저씨',
+    greeting: '배달 끝나고 오는 길입니다!',
+    postposition1: '와',
+    postposition2: '는',
+  },
+  florist: {
+    id: 'florist',
+    name: '꽃집 누나',
+    greeting: '오늘도 잘 부탁해요~',
+    postposition1: '와',
+    postposition2: '는',
+  },
+  grandpa: {
+    id: 'grandpa',
+    name: '옆집 할아버지',
+    greeting: '아이구구 허리야',
+    postposition1: '와',
+    postposition2: '는',
+  },
+  peddler: {
+    id: 'peddler',
+    name: '떠돌이 상인',
+    greeting: '이 마을에도 이런 곳이 있었군',
+    postposition1: '과',
+    postposition2: '은',
+  },
+  granddaughter: {
+    id: 'granddaughter',
+    name: '이장의 손녀딸',
+    greeting: '할아버지가 여기 맛있다고 했어요!',
+    postposition1: '과',
+    postposition2: '은',
+  },
+  hermit: {
+    id: 'hermit',
+    name: '은둔 청년',
+    greeting: '... (조용히 자리에 앉아 메뉴판을 가리킨다)',
+    postposition1: '과',
+    postposition2: '은',
+  },
+  laundress: {
+    id: 'laundress',
+    name: '세탁소 아주머니',
+    greeting: '잠깐 짬 냈어. 빨리 되지?',
+    postposition1: '와',
+    postposition2: '는',
+  },
+  shopkeeper: {
+    id: 'shopkeeper',
+    name: '잡화점 주인',
+    greeting: '오늘은 일찍 가게 문을 닫았네',
+    postposition1: '과',
+    postposition2: '은',
+  },
+  fishmonger: {
+    id: 'fishmonger',
+    name: '생선가게 사장님',
+    greeting: '오늘 물건 좋았어!',
+    postposition1: '과',
+    postposition2: '은',
+  },
+};
+
+export const CUSTOMER_IDS = Object.keys(CUSTOMERS) as CustomerId[];
+
+/** 손님별 친밀도. 요리를 하나 낼 때마다 오르고 최대치에서 멈춘다 */
+export type Friendship = Record<CustomerId, number>;
+
+export const FRIENDSHIP_MAX = 100;
+/** 요리 한 번에 오르는 친밀도 */
+export const FRIENDSHIP_PER_DISH = 1;
+
+export const createFriendship = (): Friendship =>
+  Object.fromEntries(CUSTOMER_IDS.map((id) => [id, 0])) as Friendship;
+
+/**
+ * 친밀도가 이 값에 닿는 순간 한 번만 소식으로 알린다.
+ * 높은 단계가 먼저 오도록 내림차순으로 둔다.
+ */
+const FRIENDSHIP_MILESTONES: { at: number; message: (customer: Customer) => string }[] = [
+  {
+    at: FRIENDSHIP_MAX,
+    message: (c) => `${c.name}${c.postposition2} 우리 식당의 오래된 단골 손님이다.`,
+  },
+  { at: 60, message: (c) => `${c.name}${c.postposition1} 많이 친해졌다.` },
+  { at: 30, message: (c) => `${c.name}${c.postposition1} 조금 더 친해진 것 같다.` },
+  { at: 10, message: (c) => `${c.name}${c.postposition1} 약간 친해진듯 하다.` },
 ];
+
+/** 친밀도가 before에서 after로 오르며 새로 넘어선 단계의 문구. 없으면 null */
+export const getFriendshipMessage = (
+  customer: Customer,
+  before: number,
+  after: number,
+): string | null => {
+  const reached = FRIENDSHIP_MILESTONES.find((step) => before < step.at && after >= step.at);
+  return reached ? reached.message(customer) : null;
+};
+
+// TODO: 마을 사람들 화면. 손님 목록과 친밀도를 한눈에 볼 수 있게 만들 것
 
 export const INITIAL_SEEDS = 4;
 export const INITIAL_GOLD = 100;

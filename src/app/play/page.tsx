@@ -11,18 +11,24 @@ import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
   CROP_EMOJI,
-  CUSTOMER_NAMES,
+  CUSTOMERS,
+  CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
   DISPLAY_SLOTS,
+  FRIENDSHIP_MAX,
+  FRIENDSHIP_PER_DISH,
   INITIAL_GOLD,
   INITIAL_SEEDS,
   RECIPES,
   createDailyRecord,
   createEmptyPlots,
+  createFriendship,
   getDayNumber,
   getDayPhase,
   getDisplayBonusPercent,
+  getFriendshipMessage,
   type CropId,
+  type CustomerId,
   type Inventory,
   type RecipeId,
 } from '@/lib/game/data';
@@ -30,7 +36,7 @@ import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Order {
-  customer: string;
+  customer: CustomerId;
   recipeId: RecipeId;
 }
 
@@ -50,7 +56,7 @@ const createSeeds = (): Record<CropId, number> =>
 const emptySeeds = (): Record<CropId, number> =>
   Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 
-const pickCustomer = () => CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
+const pickCustomer = () => CUSTOMER_IDS[Math.floor(Math.random() * CUSTOMER_IDS.length)];
 const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
 const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
 const rollMutation = (rate: number) => Math.random() < rate;
@@ -75,6 +81,8 @@ export default function PlayPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [display, setDisplay] = useState<CropId[]>([]);
   const [log, setLog] = useState<string[]>([]);
+  // 손님별 친밀도. 요리를 낼 때마다 오른다
+  const [friendship, setFriendship] = useState(createFriendship);
   // 오늘의 결과 화면에 보여줄 집계. 아침이 오면 비워진다
   const [daily, setDaily] = useState(createDailyRecord);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
@@ -137,6 +145,7 @@ export default function PlayPage() {
         setPlots(saved.plots);
         setDisplay(saved.display);
         setDaily(saved.daily);
+        setFriendship({ ...createFriendship(), ...saved.friendship });
         setOrder(createOrder());
         setPhase('playing');
         pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
@@ -148,10 +157,18 @@ export default function PlayPage() {
   useEffect(() => {
     if (phase !== 'playing') return;
 
-    saveGame({ playerName, gold, tick, seeds, crops: inventory, plots, display, daily }).catch(
-      () => undefined,
-    );
-  }, [phase, playerName, gold, tick, seeds, inventory, plots, display, daily]);
+    saveGame({
+      playerName,
+      gold,
+      tick,
+      seeds,
+      crops: inventory,
+      plots,
+      display,
+      daily,
+      friendship,
+    }).catch(() => undefined);
+  }, [phase, playerName, gold, tick, seeds, inventory, plots, display, daily, friendship]);
 
   const startGame = () => {
     const name = nameInput.trim();
@@ -251,11 +268,23 @@ export default function PlayPage() {
     setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
     setOrder(createOrder());
 
+    const customer = CUSTOMERS[order.customer];
     pushLog(
       useSignature
-        ? `${order.customer}에게 ${recipe.signatureName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
-        : `${order.customer}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
+        ? `${customer.name}에게 ${recipe.signatureName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
+        : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
     );
+
+    // 요리를 하나 낼 때마다 그 손님과 가까워진다
+    const before = friendship[customer.id];
+    const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
+    setFriendship((prev) => ({ ...prev, [customer.id]: after }));
+
+    // 정해진 단계를 넘어설 때만 한 번씩 알린다
+    const message = getFriendshipMessage(customer, before, after);
+    if (message) {
+      pushLog(message);
+    }
   };
 
   const buySeed = (cropId: CropId, qty: number) => {
@@ -402,7 +431,7 @@ export default function PlayPage() {
 
       {dayPhase.kind === 'bistro' && (
         <BistroView
-          customer={order?.customer ?? null}
+          customer={order ? CUSTOMERS[order.customer] : null}
           recipe={recipe}
           displayCount={display.length}
           canCook={canCook}

@@ -27,6 +27,7 @@ import {
   getDayPhase,
   getDisplayBonusPercent,
   getFriendshipMessage,
+  getGreeting,
   type CropId,
   type CustomerId,
   type Inventory,
@@ -432,6 +433,7 @@ export default function PlayPage() {
       {dayPhase.kind === 'bistro' && (
         <BistroView
           customer={order ? CUSTOMERS[order.customer] : null}
+          greeting={order ? getGreeting(CUSTOMERS[order.customer], friendship[order.customer]) : ''}
           recipe={recipe}
           displayCount={display.length}
           canCook={canCook}

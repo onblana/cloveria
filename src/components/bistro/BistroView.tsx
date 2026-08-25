@@ -10,6 +10,8 @@ import {
 
 interface BistroViewProps {
   customer: Customer | null;
+  /** 친밀도에 맞춰 고른 인사. 고르는 기준은 data.ts가 들고 있다 */
+  greeting: string;
   recipe: Recipe | null;
   /** 진열대에 올라간 변이 작물 수. 판매가 보너스 계산에 쓰인다 */
   displayCount: number;
@@ -21,6 +23,7 @@ interface BistroViewProps {
 /** 식당 단계(점심·저녁) 화면 */
 export function BistroView({
   customer,
+  greeting,
   recipe,
   displayCount,
   canCook,
@@ -32,7 +35,7 @@ export function BistroView({
       {customer && recipe && (
         <section className="rounded-lg bg-amber-50 p-4">
           <h2 className="text-sm font-semibold text-amber-600">
-            {customer.greeting} - {customer.name} 방문
+            {greeting} - {customer.name} 방문
           </h2>
           <p className="mt-1 text-sm">
             주문한 요리는 <strong>{recipe.name}</strong>!

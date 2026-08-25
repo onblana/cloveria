@@ -139,8 +139,8 @@ export type CustomerId =
 export interface Customer {
   id: CustomerId;
   name: string;
-  /** 식당에 들어서며 건네는 첫마디 */
-  greeting: string;
+  /** 친밀도 단계별로 식당에 들어서며 건네는 첫마디 (처음 / 익숙 / 단골) */
+  greetings: [string, string, string];
   /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
   postposition1: '와' | '과';
   postposition2: '는' | '은';
@@ -150,76 +150,123 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
   headman: {
     id: 'headman',
     name: '마을 이장',
-    greeting: '안녕하신가',
+    greetings: [
+      '안녕하신가',
+      '오, 오늘도 문을 열었구먼',
+      '자네 음식 없이는 하루가 안 가',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
   postman: {
     id: 'postman',
     name: '우체부 아저씨',
-    greeting: '배달 끝나고 오는 길입니다!',
+    greetings: [
+      '배달 끝나고 오는 길입니다!',
+      '오늘도 마지막 배달은 여기로 잡았습니다',
+      '이 집 밥 먹으려고 배달 순서를 바꿨어요',
+    ],
     postposition1: '와',
     postposition2: '는',
   },
   florist: {
     id: 'florist',
     name: '꽃집 누나',
-    greeting: '오늘도 잘 부탁해요~',
+    greetings: [
+      '오늘도 잘 부탁해요~',
+      '가게에 꽃 좀 놓을까? 여기랑 잘 어울릴 것 같은데',
+      '오늘 제일 예쁜 꽃, 여기 두고 갈게',
+    ],
     postposition1: '와',
     postposition2: '는',
   },
   grandpa: {
     id: 'grandpa',
     name: '옆집 할아버지',
-    greeting: '아이구구 허리야',
+    greetings: [
+      '아이구구 허리야',
+      '허리는 여전한데 여긴 오게 되네',
+      '자네 얼굴 보러 오는 거지 뭐. 밥은 덤이고',
+    ],
     postposition1: '와',
     postposition2: '는',
   },
   peddler: {
     id: 'peddler',
     name: '떠돌이 상인',
-    greeting: '이 마을에도 이런 곳이 있었군',
+    greetings: [
+      '이 마을에도 이런 곳이 있었군',
+      '다른 마을 돌다가도 여기가 생각나더군',
+      '이 집 때문에 이 마을엔 꼭 들르기로 했네',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
   granddaughter: {
     id: 'granddaughter',
     name: '이장의 손녀딸',
-    greeting: '할아버지가 여기 맛있다고 했어요!',
+    greetings: [
+      '할아버지가 여기 맛있다고 했어요!',
+      '저 혼자 왔어요! 이제 길 다 외웠어요',
+      '커서 여기 같은 식당 할 거예요!',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
   hermit: {
     id: 'hermit',
     name: '은둔 청년',
-    greeting: '... (조용히 자리에 앉아 메뉴판을 가리킨다)',
+    greetings: [
+      '... (조용히 자리에 앉아 메뉴판을 가리킨다)',
+      '... 안녕하세요. (작게)',
+      '오늘은... 이야기 좀 해도 될까요',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
   laundress: {
     id: 'laundress',
     name: '세탁소 아주머니',
-    greeting: '잠깐 짬 냈어. 빨리 되지?',
+    greetings: [
+      '잠깐 짬 냈어. 빨리 되지?',
+      '오늘은 좀 여유 있어. 천천히 해도 돼',
+      '여기 앉아 있으면 다림질 생각이 안 나',
+    ],
     postposition1: '와',
     postposition2: '는',
   },
   shopkeeper: {
     id: 'shopkeeper',
     name: '잡화점 주인',
-    greeting: '오늘은 일찍 가게 문을 닫았네',
+    greetings: [
+      '오늘은 일찍 가게 문을 닫았네',
+      '또 왔네. 뭐 좀 남았나?',
+      '우리 가게 물건보다 여기 밥이 더 잘 팔리겠어',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
   fishmonger: {
     id: 'fishmonger',
     name: '생선가게 사장님',
-    greeting: '오늘 물건 좋았어!',
+    greetings: [
+      '오늘 물건 좋았어!',
+      '좋은 놈으로 몇 마리 남겨왔어. 나중에 줄게',
+      '이봐, 다음엔 내 생선으로 요리 하나 만들어봐!',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
 };
 
 export const CUSTOMER_IDS = Object.keys(CUSTOMERS) as CustomerId[];
+
+/**
+ * 친밀도를 나누는 기준은 두 가지이고 서로 다르다. 한쪽만 보고 고치지 말 것.
+ * - 인사(greetings): 3단계 — 처음(0~29) / 익숙(GREETING_FAMILIAR_AT~99) / 단골(FRIENDSHIP_MAX)
+ * - 소식(FRIENDSHIP_MILESTONES): 5단계 — 처음 / 10 / 30 / 60 / 100
+ * 인사의 '익숙'과 소식의 30 단계가 우연히 같은 값일 뿐, 같은 기준이 아니다.
+ */
 
 /** 손님별 친밀도. 요리를 하나 낼 때마다 오르고 최대치에서 멈춘다 */
 export type Friendship = Record<CustomerId, number>;
@@ -230,6 +277,16 @@ export const FRIENDSHIP_PER_DISH = 1;
 
 export const createFriendship = (): Friendship =>
   Object.fromEntries(CUSTOMER_IDS.map((id) => [id, 0])) as Friendship;
+
+/** 인사가 '익숙' 단계로 바뀌는 친밀도 */
+export const GREETING_FAMILIAR_AT = 30;
+
+/** 친밀도에 맞는 인사. 단골에 닿기 전까지는 처음과 익숙 두 가지만 나온다 */
+export const getGreeting = (customer: Customer, friendship: number): string => {
+  if (friendship >= FRIENDSHIP_MAX) return customer.greetings[2];
+  if (friendship >= GREETING_FAMILIAR_AT) return customer.greetings[1];
+  return customer.greetings[0];
+};
 
 /**
  * 친밀도가 이 값에 닿는 순간 한 번만 소식으로 알린다.

@@ -46,7 +46,7 @@ export const CROPS: Record<CropId, Crop> = {
   tomato: {
     id: 'tomato',
     name: '토마토',
-    growTicks: 10,
+    growTicks: 1,
     seedPrice: 20,
     mutationRate: 0.001,
     mutantName: '황금 토마토',
@@ -54,7 +54,7 @@ export const CROPS: Record<CropId, Crop> = {
   corn: {
     id: 'corn',
     name: '옥수수',
-    growTicks: 20,
+    growTicks: 3,
     seedPrice: 50,
     mutationRate: 0.0001,
     mutantName: '황금 옥수수',

@@ -85,6 +85,14 @@ export default function PlayPage() {
   const dayPhase = getDayPhase(tick);
   const nextPhase = getDayPhase(tick + 1);
 
+  // 단계마다 '넘어가기'의 의미가 달라 문구를 따로 만든다
+  const advanceLabel =
+    dayPhase.kind === 'bistro'
+      ? `${dayPhase.name} 장사 마감하기`
+      : dayPhase.id === 'night'
+        ? `${day}일차 마무리하기`
+        : `${nextPhase.name} 장사 시작하기`;
+
   // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 1틱만큼 자란다
   const advancePhase = () => {
     const next = tick + 1;
@@ -382,8 +390,8 @@ export default function PlayPage() {
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-semibold">밭</h2>
-            <div className="grid grid-cols-4 gap-2">
+            <h2 className="mb-2 text-md font-bold">밭</h2>
+            <div className="grid grid-cols-5 gap-2">
               {plots.map((plot, index) => {
                 if (!plot) {
                   return (
@@ -395,7 +403,7 @@ export default function PlayPage() {
                     >
                       빈 밭
                       <br />
-                      {CROPS[selectedCrop].name} 심기
+                      <span className="text-xs font-light">{CROPS[selectedCrop].name} 심기</span>
                     </button>
                   );
                 }
@@ -485,7 +493,7 @@ export default function PlayPage() {
             <p className="mb-2 text-xs text-neutral-500">
               놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
                 const cropId = display[index];
 
@@ -541,7 +549,7 @@ export default function PlayPage() {
         onClick={advancePhase}
         className="min-h-12 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
       >
-        다음 단계: {nextPhase.name}
+        {advanceLabel}
       </button>
 
       <section className="space-y-1 border-t border-neutral-200 pt-4 text-sm text-neutral-600">

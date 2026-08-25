@@ -1,5 +1,32 @@
-// 게임 내 시간: 접속 중에만 흐르는 세션 기반 틱 (실제 1초 = 1틱)
-export const TICK_MS = 1000;
+/**
+ * 게임 내 시간은 실시간이 아니라 단계 전환으로 흐른다.
+ * 하루는 아침부터 밤까지 5단계이고, 단계가 하나 넘어갈 때 1틱이 지난다.
+ */
+export type DayPhaseId = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
+
+/** farm: 밭을 돌보는 단계, bistro: 식당 문을 여는 단계 */
+export type PhaseKind = 'farm' | 'bistro';
+
+export interface DayPhase {
+  id: DayPhaseId;
+  name: string;
+  kind: PhaseKind;
+}
+
+export const DAY_PHASES: DayPhase[] = [
+  { id: 'morning', name: '아침', kind: 'farm' },
+  { id: 'noon', name: '점심', kind: 'bistro' },
+  { id: 'afternoon', name: '오후', kind: 'farm' },
+  { id: 'evening', name: '저녁', kind: 'bistro' },
+  { id: 'night', name: '밤', kind: 'farm' },
+];
+
+export const PHASES_PER_DAY = DAY_PHASES.length;
+
+/** 누적 틱을 며칠째인지로 바꾼다 (시작이 1일차) */
+export const getDayNumber = (tick: number) => Math.floor(tick / PHASES_PER_DAY) + 1;
+
+export const getDayPhase = (tick: number) => DAY_PHASES[tick % PHASES_PER_DAY];
 
 // 밭 칸 수
 export const PLOT_COUNT = 5;
@@ -33,6 +60,15 @@ export const CROPS: Record<CropId, Crop> = {
     mutantName: '황금 옥수수',
   },
 };
+
+/** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 틱과 비교해 성장도를 계산할 수 있다 */
+export interface Plot {
+  cropId: CropId;
+  plantedTick: number;
+}
+
+export const createEmptyPlots = (): (Plot | null)[] =>
+  Array.from({ length: PLOT_COUNT }, () => null);
 
 export type RecipeId = 'tomatoPasta' | 'cornSoup';
 

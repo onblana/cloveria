@@ -1,4 +1,4 @@
-import { INITIAL_SEEDS, type CropId } from './data';
+import { createEmptyPlots, INITIAL_SEEDS, type CropId, type Plot } from './data';
 
 const DB_NAME = 'cloveria';
 const DB_VERSION = 1;
@@ -15,10 +15,17 @@ export type CropStock = Partial<Record<CropId, { normal: number; mutant: number 
 export interface SaveData {
   playerName: string;
   gold: number;
+  /** 누적 단계 전환 수. 여기서 날짜와 현재 단계가 나온다 */
+  tick: number;
   seeds: SeedStock;
   crops: CropStock;
+  plots: (Plot | null)[];
   display: CropId[];
 }
+
+/** 날짜·밭을 저장하기 전에 만들어진 기록에는 tick과 plots가 없다 */
+type PartialSaveData = Omit<SaveData, 'tick' | 'plots'> &
+  Partial<Pick<SaveData, 'tick' | 'plots'>>;
 
 /** 토마토만 저장하던 시절의 형식 */
 interface LegacySaveData {
@@ -30,17 +37,27 @@ interface LegacySaveData {
   display: CropId[];
 }
 
-type StoredSaveData = SaveData | LegacySaveData;
+type StoredSaveData = PartialSaveData | LegacySaveData;
 
 const isLegacy = (data: StoredSaveData): data is LegacySaveData => !('crops' in data);
 
 // 예전 기록은 읽는 시점에 새 형식으로 바꿔 넘긴다. 씨앗 칸이 없던 더 오래된 기록은 초기값으로 채운다
-const migrate = (data: LegacySaveData): SaveData => ({
+const migrate = (data: LegacySaveData): PartialSaveData => ({
   playerName: data.playerName,
   gold: data.gold,
   seeds: { tomato: data.seeds ?? INITIAL_SEEDS },
   crops: { tomato: { normal: data.tomato, mutant: data.goldenTomato } },
   display: data.display,
+});
+
+/**
+ * 빠진 칸을 채워 완전한 기록으로 만든다.
+ * 밭은 저장된 길이가 아니라 지금 설정된 칸 수에 맞춰 다시 깔아, 칸 수가 바뀌어도 어긋나지 않게 한다.
+ */
+const normalize = (data: PartialSaveData): SaveData => ({
+  ...data,
+  tick: data.tick ?? 0,
+  plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
 });
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -85,7 +102,7 @@ export async function loadGame(): Promise<SaveData | null> {
     store.get(SAVE_KEY),
   );
   if (!saved) return null;
-  return isLegacy(saved) ? migrate(saved) : saved;
+  return normalize(isLegacy(saved) ? migrate(saved) : saved);
 }
 
 export async function saveGame(data: SaveData): Promise<void> {

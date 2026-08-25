@@ -1,5 +1,8 @@
 @AGENTS.md
 
+## Scope
+- Deliver only the files and formats the request names. Propose extra files, fallbacks, or a different format in text and wait for approval instead of creating them.
+
 ## Response style
 - Answer with the conclusion and the exact steps only. No background, no rationale, no concept explanations unless asked.
 - Do not use placeholder values that look real (IDs, emails, tokens). Look up the real value, or mark it unmistakably as `<FILL_ME>`.

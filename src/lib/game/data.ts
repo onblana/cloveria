@@ -2,7 +2,7 @@
 export const TICK_MS = 1000;
 
 // 밭 칸 수
-export const PLOT_COUNT = 4;
+export const PLOT_COUNT = 5;
 
 export type CropId = 'tomato' | 'corn';
 

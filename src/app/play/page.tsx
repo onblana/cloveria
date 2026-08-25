@@ -129,7 +129,7 @@ export default function PlayPage() {
     setPhase('playing');
     setOrder(createOrder());
     pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
-    pushLog(`${name}, 할머니의 낡은 식당에 도착했다.`);
+    pushLog(`${name}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
   };
 
   const plant = (index: number) => {
@@ -248,7 +248,7 @@ export default function PlayPage() {
     pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
   };
 
-  // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로 요정이 씨앗을 준다
+  // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
   const totalSeeds = CROP_IDS.reduce((sum, id) => sum + seeds[id], 0);
   const totalCrops = CROP_IDS.reduce(
     (sum, id) => sum + inventory[id].normal + inventory[id].mutant,
@@ -284,9 +284,10 @@ export default function PlayPage() {
           <p>클로버 마을에는 오래된 전설이 있다.</p>
           <p>
             이 마을에서 농사를 지으면 클로버의 행운으로 희귀한 작물을 얻을 수 있다는 것. 단,
-            선택받은 자만이 그 행운을 얻는다.
+            선택받은 자만이 그 행운을 얻을 자격이 있다고 한다.
           </p>
-          <p>이제는 아무도 믿지 않는 구닥다리 이야기다.</p>
+          <p>이제는 아무도 믿지 않는 이야기다.</p>
+          <p>당신은 할머니가 남겨 주신, 텃밭이 딸린 작은 식당을 운영하기 위해 도시에서 시골로 내려왔다.</p>
         </div>
 
         <div className="space-y-3">
@@ -331,6 +332,14 @@ export default function PlayPage() {
           </button>
         </div>
       </header>
+
+      <section className="space-y-1 text-sm text-neutral-400">
+        {log.map((line, index) => (
+          <p key={`${tick}-${index}-${line}`} className={index === 0 ? 'text-neutral-900' : ''}>
+            {line}
+          </p>
+        ))}
+      </section>
 
       <section className="flex gap-2">
         {CROP_IDS.map((cropId) => (
@@ -389,7 +398,7 @@ export default function PlayPage() {
 
       <section>
         <h2 className="mb-2 text-sm font-semibold">밭</h2>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {plots.map((plot, index) => {
             if (!plot) {
               return (
@@ -445,7 +454,7 @@ export default function PlayPage() {
         <p className="mb-2 text-xs text-neutral-500">
           놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
             const cropId = display[index];
 
@@ -479,20 +488,23 @@ export default function PlayPage() {
         </div>
       </section>
 
-      <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
-        {CROP_IDS.map((cropId) => (
-          <div key={cropId} className="flex flex-wrap items-center gap-4">
-            <span>
-              {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
-            </span>
-            <span>
-              {CROPS[cropId].name} {inventory[cropId].normal}개
-            </span>
-            <span className="text-amber-700">
-              ✨ {CROPS[cropId].mutantName} {inventory[cropId].mutant}개
-            </span>
-          </div>
-        ))}
+      <section>
+        <h2 className="text-sm font-semibold">소지품</h2>
+        <div className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
+          {CROP_IDS.map((cropId) => (
+            <div key={cropId} className="flex flex-wrap items-center gap-4">
+              <span>
+                {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
+              </span>
+              <span>
+                {CROPS[cropId].name} {inventory[cropId].normal}개
+              </span>
+              <span className="text-amber-700">
+                ✨ {CROPS[cropId].mutantName} {inventory[cropId].mutant}개
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="flex gap-2">
@@ -501,7 +513,7 @@ export default function PlayPage() {
           disabled={!canCook}
           className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
         >
-          요리해서 내놓기
+          🍳 요리해서 내놓기
         </button>
         <button
           onClick={() => cook(true)}
@@ -517,17 +529,9 @@ export default function PlayPage() {
           onClick={receiveGiftSeed}
           className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
         >
-          🍀 요정에게 도움 청하기
+          🍀 요정에게 도움 요청하기
         </button>
       )}
-
-      <section className="space-y-1 border-t border-neutral-200 pt-4 text-sm text-neutral-600">
-        {log.map((line, index) => (
-          <p key={`${tick}-${index}-${line}`} className={index === 0 ? 'text-neutral-900' : ''}>
-            {line}
-          </p>
-        ))}
-      </section>
     </main>
   );
 }

@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { CoinIcon } from '@/components/icons/CoinIcon';
+import { TimerIcon } from '@/components/icons/TimerIcon';
 import {
   CROPS,
   CUSTOMER_NAMES,
@@ -295,8 +298,14 @@ export default function PlayPage() {
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
-          <span>💰 {gold}골드</span>
-          <span>⏱ {tick}</span>
+          <span className="flex items-center gap-1">
+            <CoinIcon className="text-amber-500" />
+            {gold}골드
+          </span>
+          <span className="flex items-center gap-1">
+            <TimerIcon />
+            {tick}
+          </span>
           <button onClick={resetGame} className="text-xs text-neutral-400 underline">
             처음부터
           </button>

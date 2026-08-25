@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import { CoinIcon } from '@/components/icons/CoinIcon';
+import { TimerIcon } from '@/components/icons/TimerIcon';
 import {
   CROPS,
   CUSTOMER_NAMES,
@@ -30,13 +33,33 @@ interface Order {
 /** 작물별 보유 수량 (일반 / 변이) */
 type Inventory = Record<CropId, { normal: number; mutant: number }>;
 
-const createInventory = (): Inventory => ({ tomato: { normal: 0, mutant: 0 } });
-const createSeeds = (): Record<CropId, number> => ({ tomato: INITIAL_SEEDS });
+const CROP_IDS = Object.keys(CROPS) as CropId[];
+const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
+
+/** 밭과 탭에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
+const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
+
+/** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
+const STARTER_CROP: CropId = 'tomato';
+
+const createInventory = (): Inventory =>
+  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, mutant: 0 }])) as Inventory;
+const createSeeds = (): Record<CropId, number> =>
+  Object.fromEntries(
+    CROP_IDS.map((id) => [id, id === STARTER_CROP ? INITIAL_SEEDS : 0]),
+  ) as Record<CropId, number>;
+// 저장된 기록을 덮어씌울 바탕. 기록에 없는 작물은 0개로 남는다
+const emptySeeds = (): Record<CropId, number> =>
+  Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 const createPlots = (): (Plot | null)[] => Array.from({ length: PLOT_COUNT }, () => null);
 
 const pickCustomer = () => CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
-const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: 'tomatoPasta' });
+const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
+const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
 const rollMutation = (rate: number) => Math.random() < rate;
+
+/** 진열 보너스를 화면에 보여줄 퍼센트 값으로 바꾼다 */
+const bonusPercent = (count: number) => Math.round(count * DISPLAY_BONUS_PER_ITEM * 100);
 
 export default function PlayPage() {
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
@@ -55,6 +78,8 @@ export default function PlayPage() {
   const [display, setDisplay] = useState<CropId[]>([]);
   const [seedQty, setSeedQty] = useState(1);
   const [log, setLog] = useState<string[]>([]);
+  // 씨앗 구매·파종·진열이 모두 이 선택을 따른다
+  const [selectedCrop, setSelectedCrop] = useState<CropId>(STARTER_CROP);
 
   // 최근 소식이 위로 오도록 앞에 쌓고 6줄까지만 유지
   const pushLog = useCallback((message: string) => {
@@ -79,9 +104,8 @@ export default function PlayPage() {
 
         setPlayerName(saved.playerName);
         setGold(saved.gold);
-        // 씨앗 저장 이전에 만들어진 기록에는 값이 없으므로 초기값으로 대체한다
-        setSeeds({ tomato: saved.seeds ?? INITIAL_SEEDS });
-        setInventory({ tomato: { normal: saved.tomato, mutant: saved.goldenTomato } });
+        setSeeds({ ...emptySeeds(), ...saved.seeds });
+        setInventory({ ...createInventory(), ...saved.crops });
         setDisplay(saved.display);
         setOrder(createOrder());
         setPhase('playing');
@@ -94,14 +118,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (phase !== 'playing') return;
 
-    saveGame({
-      playerName,
-      gold,
-      seeds: seeds.tomato,
-      tomato: inventory.tomato.normal,
-      goldenTomato: inventory.tomato.mutant,
-      display,
-    }).catch(() => undefined);
+    saveGame({ playerName, gold, seeds, crops: inventory, display }).catch(() => undefined);
   }, [phase, playerName, gold, seeds, inventory, display]);
 
   const startGame = () => {
@@ -111,16 +128,16 @@ export default function PlayPage() {
     setPlayerName(name);
     setPhase('playing');
     setOrder(createOrder());
-    pushLog(`요정이 토마토 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
+    pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
     pushLog(`${name}, 할머니의 낡은 식당에 도착했다.`);
   };
 
   const plant = (index: number) => {
-    if (plots[index] || seeds.tomato <= 0) return;
+    if (plots[index] || seeds[selectedCrop] <= 0) return;
 
-    setSeeds((prev) => ({ ...prev, tomato: prev.tomato - 1 }));
+    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] - 1 }));
     setPlots((prev) =>
-      prev.map((plot, i) => (i === index ? { cropId: 'tomato', plantedTick: tick } : plot)),
+      prev.map((plot, i) => (i === index ? { cropId: selectedCrop, plantedTick: tick } : plot)),
     );
   };
 
@@ -197,15 +214,15 @@ export default function PlayPage() {
     );
   };
 
-  const seedPrice = CROPS.tomato.seedPrice;
+  const seedPrice = CROPS[selectedCrop].seedPrice;
   const seedTotal = seedPrice * seedQty;
 
   const buySeed = () => {
     if (gold < seedTotal) return;
 
     setGold((prev) => prev - seedTotal);
-    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + seedQty }));
-    pushLog(`토마토 씨앗 ${seedQty}개를 ${seedTotal}골드에 샀다.`);
+    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] + seedQty }));
+    pushLog(`${CROPS[selectedCrop].name} 씨앗 ${seedQty}개를 ${seedTotal}골드에 샀다.`);
   };
 
   const putOnDisplay = (cropId: CropId) => {
@@ -232,15 +249,21 @@ export default function PlayPage() {
   };
 
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로 요정이 씨앗을 준다
+  const totalSeeds = CROP_IDS.reduce((sum, id) => sum + seeds[id], 0);
+  const totalCrops = CROP_IDS.reduce(
+    (sum, id) => sum + inventory[id].normal + inventory[id].mutant,
+    0,
+  );
+  const cheapestSeedPrice = Math.min(...CROP_IDS.map((id) => CROPS[id].seedPrice));
   const isStuck =
     phase === 'playing' &&
-    seeds.tomato === 0 &&
-    gold < CROPS.tomato.seedPrice &&
+    totalSeeds === 0 &&
+    gold < cheapestSeedPrice &&
     plots.every((plot) => plot === null) &&
-    inventory.tomato.normal + inventory.tomato.mutant < 2;
+    totalCrops < 2;
 
   const receiveGiftSeed = () => {
-    setSeeds((prev) => ({ ...prev, tomato: prev.tomato + 1 }));
+    setSeeds((prev) => ({ ...prev, [STARTER_CROP]: prev[STARTER_CROP] + 1 }));
     pushLog('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
   };
 
@@ -295,13 +318,35 @@ export default function PlayPage() {
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
-          <span>💰 {gold}골드</span>
-          <span>⏱ {tick}</span>
+          <span className="flex items-center gap-1">
+            <CoinIcon className="text-amber-500" />
+            {gold}골드
+          </span>
+          <span className="flex items-center gap-1">
+            <TimerIcon />
+            {tick}
+          </span>
           <button onClick={resetGame} className="text-xs text-neutral-400 underline">
             처음부터
           </button>
         </div>
       </header>
+
+      <section className="flex gap-2">
+        {CROP_IDS.map((cropId) => (
+          <button
+            key={cropId}
+            onClick={() => setSelectedCrop(cropId)}
+            className={`h-11 flex-1 rounded-lg border text-sm ${
+              selectedCrop === cropId
+                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                : 'border-neutral-300 text-neutral-600'
+            }`}
+          >
+            {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+          </button>
+        ))}
+      </section>
 
       <section className="flex items-center gap-2">
         <button
@@ -323,7 +368,7 @@ export default function PlayPage() {
           disabled={gold < seedTotal}
           className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm disabled:opacity-40"
         >
-          씨앗 구매 ({seedTotal}골드)
+          {CROPS[selectedCrop].name} 씨앗 구매 ({seedTotal}골드)
         </button>
       </section>
       {order && recipe && (
@@ -333,8 +378,11 @@ export default function PlayPage() {
             {order.customer} — <strong>{recipe.name}</strong>
           </p>
           <p className="mt-1 text-xs text-neutral-500">
-            필요 재료: 토마토 {recipe.ingredients.tomato}개
-            {display.length > 0 && ` · 진열 보너스 +${display.length * 10}%`}
+            필요 재료:{' '}
+            {(Object.entries(recipe.ingredients) as [CropId, number][])
+              .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개`)
+              .join(', ')}
+            {display.length > 0 && ` · 진열 보너스 +${bonusPercent(display.length)}%`}
           </p>
         </section>
       )}
@@ -348,12 +396,12 @@ export default function PlayPage() {
                 <button
                   key={index}
                   onClick={() => plant(index)}
-                  disabled={seeds.tomato <= 0}
+                  disabled={seeds[selectedCrop] <= 0}
                   className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
                 >
                   빈 밭
                   <br />
-                  심기
+                  {CROPS[selectedCrop].name} 심기
                 </button>
               );
             }
@@ -375,7 +423,7 @@ export default function PlayPage() {
               >
                 {ready ? (
                   <>
-                    🍅
+                    {CROP_EMOJI[plot.cropId]}
                     <br />
                     수확하기
                   </>
@@ -395,7 +443,7 @@ export default function PlayPage() {
       <section>
         <h2 className="text-sm font-semibold">진열대</h2>
         <p className="mb-2 text-xs text-neutral-500">
-          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +10%)
+          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
         </p>
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
@@ -405,8 +453,8 @@ export default function PlayPage() {
               return (
                 <button
                   key={index}
-                  onClick={() => putOnDisplay('tomato')}
-                  disabled={inventory.tomato.mutant <= 0}
+                  onClick={() => putOnDisplay(selectedCrop)}
+                  disabled={inventory[selectedCrop].mutant <= 0}
                   className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
                 >
                   빈 진열대
@@ -431,10 +479,20 @@ export default function PlayPage() {
         </div>
       </section>
 
-      <section className="flex flex-wrap items-center gap-4 rounded-lg bg-neutral-50 p-4 text-sm">
-        <span>씨앗 {seeds.tomato}개</span>
-        <span>토마토 {inventory.tomato.normal}개</span>
-        <span className="text-amber-700">✨ 황금 토마토 {inventory.tomato.mutant}개</span>
+      <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
+        {CROP_IDS.map((cropId) => (
+          <div key={cropId} className="flex flex-wrap items-center gap-4">
+            <span>
+              {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
+            </span>
+            <span>
+              {CROPS[cropId].name} {inventory[cropId].normal}개
+            </span>
+            <span className="text-amber-700">
+              ✨ {CROPS[cropId].mutantName} {inventory[cropId].mutant}개
+            </span>
+          </div>
+        ))}
       </section>
 
       <section className="flex gap-2">

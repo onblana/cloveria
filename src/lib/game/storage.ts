@@ -1,18 +1,47 @@
-import type { CropId } from './data';
+import { INITIAL_SEEDS, type CropId } from './data';
 
 const DB_NAME = 'cloveria';
 const DB_VERSION = 1;
 const STORE_NAME = 'saveData';
 const SAVE_KEY = 'current';
 
+/**
+ * 작물별 보유량. 나중에 작물이 늘어도 그 이전에 저장된 기록을 그대로 읽을 수 있도록
+ * 모든 작물이 들어있지 않은 부분 기록을 허용한다.
+ */
+export type SeedStock = Partial<Record<CropId, number>>;
+export type CropStock = Partial<Record<CropId, { normal: number; mutant: number }>>;
+
 export interface SaveData {
   playerName: string;
   gold: number;
-  seeds: number;
+  seeds: SeedStock;
+  crops: CropStock;
+  display: CropId[];
+}
+
+/** 토마토만 저장하던 시절의 형식 */
+interface LegacySaveData {
+  playerName: string;
+  gold: number;
+  seeds?: number;
   tomato: number;
   goldenTomato: number;
   display: CropId[];
 }
+
+type StoredSaveData = SaveData | LegacySaveData;
+
+const isLegacy = (data: StoredSaveData): data is LegacySaveData => !('crops' in data);
+
+// 예전 기록은 읽는 시점에 새 형식으로 바꿔 넘긴다. 씨앗 칸이 없던 더 오래된 기록은 초기값으로 채운다
+const migrate = (data: LegacySaveData): SaveData => ({
+  playerName: data.playerName,
+  gold: data.gold,
+  seeds: { tomato: data.seeds ?? INITIAL_SEEDS },
+  crops: { tomato: { normal: data.tomato, mutant: data.goldenTomato } },
+  display: data.display,
+});
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -52,10 +81,11 @@ const isAvailable = () => typeof indexedDB !== 'undefined';
 
 export async function loadGame(): Promise<SaveData | null> {
   if (!isAvailable()) return null;
-  const saved = await runOnStore<SaveData | undefined>('readonly', (store) =>
+  const saved = await runOnStore<StoredSaveData | undefined>('readonly', (store) =>
     store.get(SAVE_KEY),
   );
-  return saved ?? null;
+  if (!saved) return null;
+  return isLegacy(saved) ? migrate(saved) : saved;
 }
 
 export async function saveGame(data: SaveData): Promise<void> {

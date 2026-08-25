@@ -390,7 +390,7 @@ export default function PlayPage() {
           </section>
 
           <section>
-            <h2 className="mb-2 text-md font-bold">밭</h2>
+            <h2 className="mb-2 text-base font-bold">밭</h2>
             <div className="grid grid-cols-5 gap-2">
               {plots.map((plot, index) => {
                 if (!plot) {
@@ -399,10 +399,8 @@ export default function PlayPage() {
                       key={index}
                       onClick={() => plant(index)}
                       disabled={seeds[selectedCrop] <= 0}
-                      className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
+                      className="h-24 rounded-lg border border-dashed border-neutral-400 text-xs text-neutral-400"
                     >
-                      빈 밭
-                      <br />
                       <span className="text-xs font-light">{CROPS[selectedCrop].name} 심기</span>
                     </button>
                   );
@@ -433,7 +431,7 @@ export default function PlayPage() {
                       <>
                         🌱
                         <br />
-                        {crop.growTicks - grown}단계 뒤 수확
+                        {Math.floor((grown / crop.growTicks) * 100)}%
                       </>
                     )}
                   </button>
@@ -477,7 +475,7 @@ export default function PlayPage() {
               disabled={!canCook}
               className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
             >
-              요리해서 내놓기
+              🍳 요리해서 내놓기
             </button>
             <button
               onClick={() => cook(true)}

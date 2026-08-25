@@ -6,6 +6,7 @@ import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
 import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
@@ -16,6 +17,7 @@ import {
   INITIAL_GOLD,
   INITIAL_SEEDS,
   RECIPES,
+  createDailyRecord,
   createEmptyPlots,
   getDayNumber,
   getDayPhase,
@@ -73,6 +75,10 @@ export default function PlayPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [display, setDisplay] = useState<CropId[]>([]);
   const [log, setLog] = useState<string[]>([]);
+  // 오늘의 결과 화면에 보여줄 집계. 아침이 오면 비워진다
+  const [daily, setDaily] = useState(createDailyRecord);
+  // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
+  const [isDayEnding, setIsDayEnding] = useState(false);
   // 진열대 빈 칸을 눌렀을 때 올릴 작물을 고르는 창
   const [isDisplayPickerOpen, setIsDisplayPickerOpen] = useState(false);
 
@@ -94,11 +100,24 @@ export default function PlayPage() {
 
   // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 1틱만큼 자란다
   const advancePhase = () => {
+    // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
+    if (dayPhase.id === 'night') {
+      setIsDayEnding(true);
+      return;
+    }
+
+    setTick(tick + 1);
+  };
+
+  // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
+  const finishDayEnd = useCallback(() => setIsDayEnding(false), []);
+
+  // 화면이 덮여 있는 동안 다음 날 아침으로 넘어가고 집계를 비운다
+  const wakeUp = () => {
     const next = tick + 1;
     setTick(next);
-    if (getDayPhase(next).id === 'morning') {
-      pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
-    }
+    setDaily(createDailyRecord());
+    pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
   };
 
   // 첫 진입 시 저장된 기록이 있으면 이어서 시작한다
@@ -117,6 +136,7 @@ export default function PlayPage() {
         setInventory({ ...createInventory(), ...saved.crops });
         setPlots(saved.plots);
         setDisplay(saved.display);
+        setDaily(saved.daily);
         setOrder(createOrder());
         setPhase('playing');
         pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
@@ -128,10 +148,10 @@ export default function PlayPage() {
   useEffect(() => {
     if (phase !== 'playing') return;
 
-    saveGame({ playerName, gold, tick, seeds, crops: inventory, plots, display }).catch(
+    saveGame({ playerName, gold, tick, seeds, crops: inventory, plots, display, daily }).catch(
       () => undefined,
     );
-  }, [phase, playerName, gold, tick, seeds, inventory, plots, display]);
+  }, [phase, playerName, gold, tick, seeds, inventory, plots, display, daily]);
 
   const startGame = () => {
     const name = nameInput.trim();
@@ -167,6 +187,19 @@ export default function PlayPage() {
       },
     }));
     setPlots((prev) => prev.map((p, i) => (i === index ? null : p)));
+    setDaily((prev) => {
+      const before = prev.harvest[plot.cropId] ?? { normal: 0, mutant: 0 };
+      return {
+        ...prev,
+        harvest: {
+          ...prev.harvest,
+          [plot.cropId]: {
+            normal: before.normal + (isMutant ? 0 : 1),
+            mutant: before.mutant + (isMutant ? 1 : 0),
+          },
+        },
+      };
+    });
 
     // 일반 수확은 너무 잦아 로그를 남기지 않고, 드물게 나오는 변이만 알린다
     if (isMutant) {
@@ -215,6 +248,7 @@ export default function PlayPage() {
     const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
 
     setGold((prev) => prev + price);
+    setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
     setOrder(createOrder());
 
     pushLog(
@@ -230,6 +264,7 @@ export default function PlayPage() {
 
     setGold((prev) => prev - total);
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
+    setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
     pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };
 
@@ -460,6 +495,16 @@ export default function PlayPage() {
             </button>
           ))}
         </CropPickerModal>
+      )}
+
+      {isDayEnding && (
+        <DayEndScreen
+          day={day}
+          record={daily}
+          cropIds={CROP_IDS}
+          onWake={wakeUp}
+          onFinish={finishDayEnd}
+        />
       )}
     </main>
   );

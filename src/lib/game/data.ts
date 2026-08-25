@@ -71,6 +71,20 @@ export const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽'
 /** 작물별 보유 수량 (일반 / 변이) */
 export type Inventory = Record<CropId, { normal: number; mutant: number }>;
 
+/**
+ * 하루 동안의 성과. 밤에 하루를 마무리할 때 보여주고 다음 날 아침에 비운다.
+ * 수확은 작물이 늘어도 예전 기록을 읽을 수 있도록 부분 기록을 허용한다.
+ */
+export interface DailyRecord {
+  /** 요리를 팔아 번 돈 */
+  earned: number;
+  /** 씨앗을 사는 데 쓴 돈 */
+  spent: number;
+  harvest: Partial<Record<CropId, { normal: number; mutant: number }>>;
+}
+
+export const createDailyRecord = (): DailyRecord => ({ earned: 0, spent: 0, harvest: {} });
+
 /** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 틱과 비교해 성장도를 계산할 수 있다 */
 export interface Plot {
   cropId: CropId;

@@ -1,4 +1,11 @@
-import { createEmptyPlots, INITIAL_SEEDS, type CropId, type Plot } from './data';
+import {
+  createDailyRecord,
+  createEmptyPlots,
+  INITIAL_SEEDS,
+  type CropId,
+  type DailyRecord,
+  type Plot,
+} from './data';
 
 const DB_NAME = 'cloveria';
 const DB_VERSION = 1;
@@ -21,11 +28,13 @@ export interface SaveData {
   crops: CropStock;
   plots: (Plot | null)[];
   display: CropId[];
+  /** 오늘치 성과. 새로고침해도 하루 결과가 어긋나지 않도록 함께 저장한다 */
+  daily: DailyRecord;
 }
 
-/** 날짜·밭을 저장하기 전에 만들어진 기록에는 tick과 plots가 없다 */
-type PartialSaveData = Omit<SaveData, 'tick' | 'plots'> &
-  Partial<Pick<SaveData, 'tick' | 'plots'>>;
+/** 날짜·밭·하루 집계를 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
+type PartialSaveData = Omit<SaveData, 'tick' | 'plots' | 'daily'> &
+  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily'>>;
 
 /** 토마토만 저장하던 시절의 형식 */
 interface LegacySaveData {
@@ -58,6 +67,7 @@ const normalize = (data: PartialSaveData): SaveData => ({
   ...data,
   tick: data.tick ?? 0,
   plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
+  daily: data.daily ?? createDailyRecord(),
 });
 
 function openDatabase(): Promise<IDBDatabase> {

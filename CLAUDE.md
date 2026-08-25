@@ -2,6 +2,7 @@
 
 ## Scope
 - Deliver only the files and formats the request names. Propose extra files, fallbacks, or a different format in text and wait for approval instead of creating them.
+- Never run `npx prettier` or any other formatter that is not configured in this repo. It reformats whole files and buries the real change in unrelated diffs.
 
 ## Response style
 - Answer with the conclusion and the exact steps only. No background, no rationale, no concept explanations unless asked.

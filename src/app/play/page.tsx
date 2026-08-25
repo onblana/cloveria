@@ -53,6 +53,10 @@ const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length
 const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
 const rollMutation = (rate: number) => Math.random() < rate;
 
+/** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
+const LOG_LINES = 3;
+const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
+
 /** 진열 보너스를 화면에 보여줄 퍼센트 값으로 바꾼다 */
 const bonusPercent = (count: number) => Math.round(count * DISPLAY_BONUS_PER_ITEM * 100);
 
@@ -75,10 +79,11 @@ export default function PlayPage() {
   const [log, setLog] = useState<string[]>([]);
   // 씨앗 구매·파종·진열이 모두 이 선택을 따른다
   const [selectedCrop, setSelectedCrop] = useState<CropId>(STARTER_CROP);
+  // 진열대 빈 칸을 눌렀을 때 올릴 작물을 고르는 창
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
 
-  // 최근 소식이 위로 오도록 앞에 쌓고 6줄까지만 유지
   const pushLog = useCallback((message: string) => {
-    setLog((prev) => [message, ...prev].slice(0, 6));
+    setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
   }, []);
 
   const day = getDayNumber(tick);
@@ -246,6 +251,7 @@ export default function PlayPage() {
       [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
     }));
     setDisplay((prev) => [...prev, cropId]);
+    setIsPickerOpen(false);
     pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
@@ -328,7 +334,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-5 p-2 sm:gap-6 sm:p-8">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
@@ -346,22 +352,32 @@ export default function PlayPage() {
         </div>
       </header>
 
-      {/* 작물 선택은 두 단계에서 같이 쓴다. 농사 단계에선 심을 작물, 장사 단계에선 진열할 작물 */}
-      <section className="flex gap-2">
-        {CROP_IDS.map((cropId) => (
-          <button
-            key={cropId}
-            onClick={() => setSelectedCrop(cropId)}
-            className={`h-11 flex-1 rounded-lg border text-sm ${
-              selectedCrop === cropId
-                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                : 'border-neutral-300 text-neutral-600'
-            }`}
-          >
-            {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-          </button>
+      <section className="space-y-1 text-sm text-neutral-600">
+        {log.map((line, index) => (
+          <p key={`${tick}-${index}-${line}`} className={LOG_TONES[index]}>
+            {line}
+          </p>
         ))}
       </section>
+
+      {/* 심을 작물 선택. 장사 단계에서는 감춰짐 */}
+      {dayPhase.kind === 'farm' && (
+        <section className="flex gap-2">
+          {CROP_IDS.map((cropId) => (
+            <button
+              key={cropId}
+              onClick={() => setSelectedCrop(cropId)}
+              className={`h-11 flex-1 rounded-lg border text-sm ${
+                selectedCrop === cropId
+                  ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                  : 'border-neutral-300 text-neutral-600'
+              }`}
+            >
+              {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+            </button>
+          ))}
+        </section>
+      )}
 
       {dayPhase.kind === 'farm' && (
         <>
@@ -399,7 +415,7 @@ export default function PlayPage() {
                       key={index}
                       onClick={() => plant(index)}
                       disabled={seeds[selectedCrop] <= 0}
-                      className="h-24 rounded-lg border border-dashed border-neutral-400 text-xs text-neutral-400"
+                      className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
                     >
                       <span className="text-xs font-light">{CROPS[selectedCrop].name} 심기</span>
                     </button>
@@ -469,70 +485,39 @@ export default function PlayPage() {
             </section>
           )}
 
-          <section className="flex gap-2">
-            <button
-              onClick={() => cook(false)}
-              disabled={!canCook}
-              className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-            >
-              🍳 요리해서 내놓기
-            </button>
-            <button
-              onClick={() => cook(true)}
-              disabled={!canCookSignature}
-              className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-            >
-              ✨ 시그니처로 만들기
-            </button>
-          </section>
-
-          <section>
-            <h2 className="text-sm font-semibold">진열대</h2>
-            <p className="mb-2 text-xs text-neutral-500">
-              놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
+          {canCook || canCookSignature ? (
+            <section className="flex gap-2">
+              <button
+                onClick={() => cook(false)}
+                disabled={!canCook}
+                className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
+              >
+                🍳 요리해서 내놓기
+              </button>
+              <button
+                onClick={() => cook(true)}
+                disabled={!canCookSignature}
+                className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
+              >
+                ✨ 시그니처로 만들기
+              </button>
+            </section>
+          ) : (
+            <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+              요리 재료가 모자라 더 이상 장사를 할 수 없다.
             </p>
-            <div className="grid grid-cols-6 gap-2">
-              {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
-                const cropId = display[index];
-
-                if (!cropId) {
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => putOnDisplay(selectedCrop)}
-                      disabled={inventory[selectedCrop].mutant <= 0}
-                      className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
-                    >
-                      빈 진열대
-                      <br />
-                      올리기
-                    </button>
-                  );
-                }
-
-                return (
-                  <button
-                    key={index}
-                    onClick={() => takeFromDisplay(index)}
-                    className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
-                  >
-                    ✨ {CROPS[cropId].mutantName}
-                    <br />
-                    <span className="font-normal text-amber-600">내리기</span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+          )}
         </>
       )}
 
       <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
-            <span>
-              {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
-            </span>
+            {dayPhase.kind === 'farm' &&
+              <span>
+                {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
+              </span>
+            }
             <span>
               {CROPS[cropId].name} {inventory[cropId].normal}개
             </span>
@@ -550,13 +535,85 @@ export default function PlayPage() {
         {advanceLabel}
       </button>
 
-      <section className="space-y-1 border-t border-neutral-200 pt-4 text-sm text-neutral-600">
-        {log.map((line, index) => (
-          <p key={`${tick}-${index}-${line}`} className={index === 0 ? 'text-neutral-900' : ''}>
-            {line}
-          </p>
-        ))}
+      <section>
+        <h2 className="text-sm font-semibold">진열대</h2>
+        <p className="mb-2 text-xs text-neutral-500">
+          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
+        </p>
+        <div className="grid grid-cols-6 gap-2">
+          {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
+            const cropId = display[index];
+
+            if (!cropId) {
+              return (
+                <button
+                  key={index}
+                  onClick={() => setIsPickerOpen(true)}
+                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
+                >
+                  빈 진열대
+                  <br />
+                  올리기
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={index}
+                onClick={() => takeFromDisplay(index)}
+                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
+              >
+                ✨ {CROPS[cropId].mutantName}
+                <br />
+                <span className="font-normal text-amber-600">내리기</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
+
+      {isPickerOpen && (
+        <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          {/* 바깥을 눌러도 닫히도록 오버레이 자체를 버튼으로 둔다 */}
+          <button
+            aria-label="닫기"
+            onClick={() => setIsPickerOpen(false)}
+            className="absolute inset-0 cursor-default"
+          />
+
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-4">
+            <h2 className="text-sm font-semibold">진열할 작물 고르기</h2>
+            <p className="mt-1 text-xs text-neutral-500">변이 작물만 진열할 수 있다</p>
+
+            <div className="mt-3 space-y-2">
+              {CROP_IDS.map((cropId) => {
+                const count = inventory[cropId].mutant;
+
+                return (
+                  <button
+                    key={cropId}
+                    onClick={() => putOnDisplay(cropId)}
+                    className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm"
+                  >
+                    <span>
+                      {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].mutantName}
+                    </span>
+                    <span className="tabular-nums text-neutral-500">{count}개</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setIsPickerOpen(false)}
+              className="mt-3 min-h-12 w-full rounded-lg border border-neutral-300 text-sm text-neutral-600"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

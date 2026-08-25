@@ -15,6 +15,7 @@ import {
   type RecipeId,
 } from '@/lib/game/data';
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
+import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface Plot {
   cropId: CropId;
@@ -250,11 +251,7 @@ export default function PlayPage() {
   };
 
   if (phase === 'loading') {
-    return (
-      <main className="flex min-h-screen items-center justify-center text-sm text-neutral-500">
-        기록을 불러오는 중...
-      </main>
-    );
+    return <LoadingScreen message="기록을 불러오는 중..." />;
   }
 
   if (phase === 'naming') {
@@ -284,7 +281,7 @@ export default function PlayPage() {
           <button
             onClick={startGame}
             disabled={!nameInput.trim()}
-            className="w-full rounded-lg bg-green-600 py-2 font-medium text-white disabled:bg-neutral-300"
+            className="w-full rounded-lg bg-green-600 py-2 font-semibold text-white disabled:bg-neutral-300"
           >
             마을로 돌아가기
           </button>
@@ -372,7 +369,7 @@ export default function PlayPage() {
                 disabled={!ready}
                 className={`h-24 rounded-lg border text-xs ${
                   ready
-                    ? 'border-green-500 bg-green-50 font-medium text-green-800'
+                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
                     : 'border-neutral-200 text-neutral-500'
                 }`}
               >
@@ -423,7 +420,7 @@ export default function PlayPage() {
               <button
                 key={index}
                 onClick={() => takeFromDisplay(index)}
-                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-medium text-amber-800"
+                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
               >
                 ✨ {CROPS[cropId].mutantName}
                 <br />
@@ -444,14 +441,14 @@ export default function PlayPage() {
         <button
           onClick={() => cook(false)}
           disabled={!canCook}
-          className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-medium text-white disabled:bg-neutral-300"
+          className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
         >
           요리해서 내놓기
         </button>
         <button
           onClick={() => cook(true)}
           disabled={!canCookSignature}
-          className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-medium text-white disabled:bg-neutral-300"
+          className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
         >
           ✨ 시그니처로 만들기
         </button>

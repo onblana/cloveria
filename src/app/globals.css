@@ -1,5 +1,52 @@
 @import "tailwindcss";
 
+/*
+ * 마루부리 (네이버)
+ * 이 페이지에는 네이버에서 제공한 마루부리 글꼴이 적용되어 있습니다.
+ *
+ * 5가지 굵기를 모두 선언해두지만, 브라우저는 화면에 실제로 쓰인 굵기만 내려받는다.
+ * 500(medium)은 제공되지 않으므로 강조에는 600(semibold)을 쓴다.
+ */
+@font-face {
+  font-family: "MaruBuri";
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-ExtraLight.woff2)
+    format("woff2");
+  font-weight: 200;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MaruBuri";
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Light.woff2)
+    format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MaruBuri";
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2)
+    format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MaruBuri";
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-SemiBold.woff2)
+    format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "MaruBuri";
+  src: url(https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Bold.woff2)
+    format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -8,10 +55,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* 화면 텍스트가 대부분 한글이라 웹폰트 대신 기기 기본 폰트를 쓴다 */
+  /* 마루부리를 기본 폰트로 쓰고, 내려받기 전까지는 기기 기본 폰트로 보여준다 */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic",
-    "Segoe UI", system-ui, sans-serif;
+    "MaruBuri", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
 }
 
 /*

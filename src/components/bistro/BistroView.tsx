@@ -50,22 +50,25 @@ export function BistroView({
         </section>
       )}
 
+      {/* 만들 수 없는 요리는 흐리게 두지 않고 아예 감춘다 */}
       {canCook || canCookSignature ? (
         <section className="flex gap-2">
-          <button
-            onClick={() => onCook(false)}
-            disabled={!canCook}
-            className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-          >
-            🍳 요리해서 내놓기
-          </button>
-          <button
-            onClick={() => onCook(true)}
-            disabled={!canCookSignature}
-            className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-          >
-            ✨ 시그니처로 만들기
-          </button>
+          {canCook && (
+            <button
+              onClick={() => onCook(false)}
+              className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white"
+            >
+              🍳 요리해서 내놓기
+            </button>
+          )}
+          {canCookSignature && (
+            <button
+              onClick={() => onCook(true)}
+              className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white"
+            >
+              ✨ 특별한 요리 만들기
+            </button>
+          )}
         </section>
       ) : (
         <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">

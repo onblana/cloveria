@@ -54,7 +54,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '토마토',
     growTicks: 1,
     seedPrice: 20,
-    mutationRate: 0.001,
+    mutationRate: 0.03,
     mutantName: '황금 토마토',
   },
   corn: {
@@ -62,7 +62,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '옥수수',
     growTicks: 3,
     seedPrice: 50,
-    mutationRate: 0.0001,
+    mutationRate: 0.01,
     mutantName: '황금 옥수수',
   },
 };
@@ -121,8 +121,8 @@ export const RECIPES: Record<RecipeId, Recipe> = {
     name: '옥수수 스프',
     signatureName: '행운의 옥수수 스프',
     ingredients: { corn: 2 },
-    price: 150,
-    signatureMultiplier: 1.7,
+    price: 200,
+    signatureMultiplier: 1.5,
   },
 };
 

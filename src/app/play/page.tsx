@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
+import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
 import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { FarmView } from '@/components/farm/FarmView';
@@ -12,6 +13,7 @@ import {
   CROPS,
   CROP_EMOJI,
   CUSTOMERS,
+  CUSTOMER_COMMENTS,
   CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
   DISPLAY_SLOTS,
@@ -58,6 +60,8 @@ const emptySeeds = (): Record<CropId, number> =>
   Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 
 const pickCustomer = () => CUSTOMER_IDS[Math.floor(Math.random() * CUSTOMER_IDS.length)];
+const pickComment = () =>
+  CUSTOMER_COMMENTS[Math.floor(Math.random() * CUSTOMER_COMMENTS.length)];
 const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
 const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
 const rollMutation = (rate: number) => Math.random() < rate;
@@ -86,6 +90,8 @@ export default function PlayPage() {
   const [friendship, setFriendship] = useState(createFriendship);
   // 오늘의 결과 화면에 보여줄 집계. 아침이 오면 비워진다
   const [daily, setDaily] = useState(createDailyRecord);
+  // 조리 연출 창에 보여줄 결과. null이면 창이 닫힌 상태다
+  const [cookResult, setCookResult] = useState<CookResult | null>(null);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
   const [isDayEnding, setIsDayEnding] = useState(false);
   // 진열대 빈 칸을 눌렀을 때 올릴 작물을 고르는 창
@@ -267,9 +273,17 @@ export default function PlayPage() {
 
     setGold((prev) => prev + price);
     setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
-    setOrder(createOrder());
 
     const customer = CUSTOMERS[order.customer];
+    const dishName = useSignature ? recipe.signatureName : recipe.name;
+    // 다음 손님은 그릇을 치운 뒤에 들어온다
+    setCookResult({
+      customerName: customer.name,
+      playerName,
+      dishName,
+      price,
+      comment: pickComment(),
+    });
     pushLog(
       useSignature
         ? `${customer.name}에게 ${recipe.signatureName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
@@ -286,6 +300,12 @@ export default function PlayPage() {
     if (message) {
       pushLog(message);
     }
+  };
+
+  // 그릇을 치우면 연출 창이 닫히고 다음 손님이 들어온다
+  const clearDishes = () => {
+    setCookResult(null);
+    setOrder(createOrder());
   };
 
   const buySeed = (cropId: CropId, qty: number) => {
@@ -527,6 +547,8 @@ export default function PlayPage() {
           ))}
         </CropPickerModal>
       )}
+
+      {cookResult && <CookingModal result={cookResult} onClear={clearDishes} />}
 
       {isDayEnding && (
         <DayEndScreen

@@ -28,6 +28,8 @@ export const getDayNumber = (tick: number) => Math.floor(tick / PHASES_PER_DAY) 
 
 export const getDayPhase = (tick: number) => DAY_PHASES[tick % PHASES_PER_DAY];
 
+// TODO: 마을 사람들 화면. 손님 목록과 친밀도를 한눈에 볼 수 있게 만들 것
+
 /**
  * 밭 칸 수. 5열 고정이라 칸 수가 늘면 아래로 행이 하나씩 늘어난다.
  * TODO: 상점에서 밭 확장을 사면 이 값이 커진다. 고정값 대신 저장된 확장 단계에서
@@ -184,7 +186,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     id: 'grandpa',
     name: '옆집 할아버지',
     greetings: [
-      '아이구구 허리야',
+      '아이구구 허리야...',
       '허리는 여전한데 여긴 오게 되네',
       '자네 얼굴 보러 오는 거지 뭐. 밥은 덤이고',
     ],
@@ -195,7 +197,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     id: 'peddler',
     name: '떠돌이 상인',
     greetings: [
-      '이 마을에도 이런 곳이 있었군',
+      '이 마을에 이런 곳이 있었군',
       '다른 마을 돌다가도 여기가 생각나더군',
       '이 집 때문에 이 마을엔 꼭 들르기로 했네',
     ],
@@ -218,7 +220,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     name: '은둔 청년',
     greetings: [
       '... (조용히 자리에 앉아 메뉴판을 가리킨다)',
-      '... 안녕하세요. (작게)',
+      '... (작게) 안녕하세요',
       '오늘은... 이야기 좀 해도 될까요',
     ],
     postposition1: '과',
@@ -312,7 +314,23 @@ export const getFriendshipMessage = (
   return reached ? reached.message(customer) : null;
 };
 
-// TODO: 마을 사람들 화면. 손님 목록과 친밀도를 한눈에 볼 수 있게 만들 것
+/** 요리를 다 먹은 손님이 남기는 한마디. 요리 종류와 상관없이 무작위로 하나 고른다 */
+export const CUSTOMER_COMMENTS = [
+  '이 맛이야. 오늘 하루가 다 풀리는군.',
+  '접시까지 먹을 뻔했네.',
+  '오늘따라 간이 딱 맞는데?',
+  '이런 건 도시에서도 못 먹어봤어.',
+  '한 그릇 더 시킬 뻔했잖아.',
+  '허, 솜씨가 늘었구먼.',
+  '먹고 나니 힘이 나는걸.',
+  '이 집, 잘 되겠어.',
+  '재료가 좋으니 맛이 다르네.',
+  '잘 먹었습니다. 또 올게요.',
+];
+
+// TODO: 칭호. 아래 두 가지를 먼저 넣고, 달성 횟수를 세는 카운터도 저장 형식에 추가할 것
+//       - 토마토 파스타 전문 요리사: 토마토 파스타를 20번 요리했다
+//       - 토마토 키우기의 달인: 토마토 50개를 수확했다
 
 export const INITIAL_SEEDS = 4;
 export const INITIAL_GOLD = 100;

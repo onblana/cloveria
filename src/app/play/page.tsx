@@ -7,6 +7,7 @@ import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
 import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
+import { HeaderMenu } from '@/components/common/HeaderMenu';
 import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
 import {
@@ -411,8 +412,12 @@ export default function PlayPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col p-2 gap-3 sm:gap-4 sm:p-8">
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
-        <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
+      {/* 좁은 화면에서 줄이 늘어나지 않도록 제목 줄과 상태 줄을 나눈다 */}
+      <header className="border-b border-neutral-200 pb-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
+          <HeaderMenu onReset={resetGame} />
+        </div>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
           <span className="flex items-center gap-1">
             <CoinIcon className="text-amber-500" />
@@ -422,9 +427,6 @@ export default function PlayPage() {
             <TimerIcon />
             {day}일차 {dayPhase.name}
           </span>
-          <button onClick={resetGame} className="text-xs text-neutral-400 underline">
-            처음부터 다시 시작하기
-          </button>
         </div>
       </header>
 

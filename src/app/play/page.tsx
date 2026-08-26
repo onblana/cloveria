@@ -98,6 +98,8 @@ export default function PlayPage() {
   const [daily, setDaily] = useState(createDailyRecord);
   // 조리 연출 창에 보여줄 결과. null이면 창이 닫힌 상태다
   const [cookResult, setCookResult] = useState<CookResult | null>(null);
+  // 연출이 도는 동안 뒤 화면에 그대로 세워둘 손님. 대기열은 이미 다음으로 넘어가 있다
+  const [servedOrder, setServedOrder] = useState<Order | null>(null);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
   const [isDayEnding, setIsDayEnding] = useState(false);
 
@@ -276,6 +278,13 @@ export default function PlayPage() {
   const order = orders[0] ?? null;
   const recipe = order ? RECIPES[order.recipeId] : null;
 
+  /*
+   * 화면에 세워둘 손님. 연출 중에는 방금 요리를 받은 손님을 그대로 두고,
+   * 그릇을 치우면 그때 다음 손님으로 바뀐다. 대기열(order)은 새로고침에 대비해 먼저 줄여둔다.
+   */
+  const shownOrder = servedOrder ?? order;
+  const shownRecipe = shownOrder ? RECIPES[shownOrder.recipeId] : null;
+
   const { canCook, canCookSpecial } = useMemo(() => {
     if (!recipe) return { canCook: false, canCookSpecial: false };
 
@@ -318,6 +327,7 @@ export default function PlayPage() {
 
     // 연출 도중에 새로고침해도 같은 손님을 다시 받지 않도록 여기서 대기열을 줄인다
     setOrders((prev) => prev.slice(1));
+    setServedOrder(order);
 
     const customer = CUSTOMERS[order.customer];
     const dishName = useSpecial ? recipe.specialName : recipe.name;
@@ -349,7 +359,11 @@ export default function PlayPage() {
   };
 
   // 그릇을 치우면 연출 창이 닫히고 다음 손님이 들어온다
-  const clearDishes = () => setCookResult(null);
+  // 그릇을 치우는 순간 비로소 다음 손님이 화면에 선다
+  const clearDishes = () => {
+    setCookResult(null);
+    setServedOrder(null);
+  };
 
   const buySeed = (cropId: CropId, qty: number) => {
     const total = CROPS[cropId].seedPrice * qty;
@@ -438,10 +452,14 @@ export default function PlayPage() {
 
       {dayPhase.kind === 'bistro' && (
         <BistroView
-          customer={order ? CUSTOMERS[order.customer] : null}
-          greeting={order ? getGreeting(CUSTOMERS[order.customer], friendship[order.customer]) : ''}
+          customer={shownOrder ? CUSTOMERS[shownOrder.customer] : null}
+          greeting={
+            shownOrder
+              ? getGreeting(CUSTOMERS[shownOrder.customer], friendship[shownOrder.customer])
+              : ''
+          }
           phaseName={dayPhase.name}
-          recipe={recipe}
+          recipe={shownRecipe}
           displayCount={displayCount}
           canCook={canCook}
           canCookSpecial={canCookSpecial}

@@ -68,7 +68,9 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
             <span className="animate-pulse text-4xl">🍽️</span>
             {/* 플레이어 이름은 자유 입력이라 받침을 알 수 없다. 조사가 붙지 않는 '의'로 잇는다 */}
             <p className="text-center text-sm text-neutral-600">
-              {result.customerName}, {result.playerName}의 {result.dishName} 먹는 중
+              {result.customerName},
+              <br />
+              {result.dishName} 먹는 중
             </p>
           </div>
         )}
@@ -79,16 +81,16 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
               “{result.comment}”
             </p>
             <div className="space-y-1 text-center text-sm">
-              {/* 진열대가 비어 있으면 보너스 줄을 아예 감춘다 */}
               {result.displayBonus > 0 && (
-                <p className="text-neutral-500">
-                  원래 금액 {result.basePrice}골드{' '}
+                <p className="text-neutral-800">
+                  {result.basePrice}골드
+                  <br />
                   <span className="font-semibold text-amber-600">
-                    + 진열대 보너스로 {result.displayBonus}골드를 더 받았다
+                    + 진열대 보너스 {result.displayBonus}골드
                   </span>
                 </p>
               )}
-              <p className="font-semibold">{result.price}골드를 얻었다</p>
+              <p className="font-semibold mt-2">{result.price}골드를 얻었다!</p>
             </div>
             <button
               onClick={onClear}

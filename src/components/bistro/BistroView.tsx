@@ -48,9 +48,10 @@ export function BistroView({
     <>
       <section className="rounded-lg bg-amber-50 p-4">
         <h2 className="text-sm font-semibold text-amber-600">
-          {greeting} - {customer.name} 방문
+          <p className="text-xs mb-1">{customer.name} 방문</p>
+          {greeting}
         </h2>
-        <p className="mt-1 text-sm">
+        <p className="mt-1 text-xs">
           주문한 요리는 <strong>{recipe.name}</strong>!
         </p>
         <p className="mt-1 text-sm text-green-700">

@@ -6,16 +6,14 @@ import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
 import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
-import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
+import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
-  CROP_EMOJI,
   CUSTOMERS,
   CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
-  DISPLAY_SLOTS,
   FRIENDSHIP_MAX,
   FRIENDSHIP_PER_DISH,
   INITIAL_GOLD,
@@ -26,7 +24,6 @@ import {
   createFriendship,
   getDayNumber,
   getDayPhase,
-  getDisplayBonusPercent,
   getFriendshipMessage,
   getGreeting,
   type CropId,
@@ -100,7 +97,6 @@ export default function PlayPage() {
   const [plots, setPlots] = useState(createEmptyPlots);
   // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
   const [orders, setOrders] = useState<Order[]>([]);
-  const [display, setDisplay] = useState<CropId[]>([]);
   const [log, setLog] = useState<string[]>([]);
   // 손님별 친밀도. 요리를 낼 때마다 오른다
   const [friendship, setFriendship] = useState(createFriendship);
@@ -110,12 +106,16 @@ export default function PlayPage() {
   const [cookResult, setCookResult] = useState<CookResult | null>(null);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
   const [isDayEnding, setIsDayEnding] = useState(false);
-  // 진열대 빈 칸을 눌렀을 때 올릴 작물을 고르는 창
-  const [isDisplayPickerOpen, setIsDisplayPickerOpen] = useState(false);
 
   const pushLog = useCallback((message: string) => {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
   }, []);
+
+  const { display, setDisplay, putOnDisplay, takeFromDisplay } = useDisplay({
+    inventory,
+    setInventory,
+    pushLog,
+  });
 
   const day = getDayNumber(phaseCount);
   const dayPhase = getDayPhase(phaseCount);
@@ -180,7 +180,8 @@ export default function PlayPage() {
         pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
       })
       .catch(() => setScreen('naming'));
-  }, [pushLog]);
+    // setDisplay는 useDisplay가 돌려주는 setState라 값이 바뀌지 않는다
+  }, [pushLog, setDisplay]);
 
   /*
    * 저장 대상이 바뀔 때마다 기록한다.
@@ -359,30 +360,6 @@ export default function PlayPage() {
     pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };
 
-  const putOnDisplay = (cropId: CropId) => {
-    if (display.length >= DISPLAY_SLOTS || inventory[cropId].mutant <= 0) return;
-
-    setInventory((prev) => ({
-      ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
-    }));
-    setDisplay((prev) => [...prev, cropId]);
-    setIsDisplayPickerOpen(false);
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
-  };
-
-  const takeFromDisplay = (index: number) => {
-    const cropId = display[index];
-    if (!cropId) return;
-
-    setInventory((prev) => ({
-      ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant + 1 },
-    }));
-    setDisplay((prev) => prev.filter((_, i) => i !== index));
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
-  };
-
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
   const totalSeeds = CROP_IDS.reduce((sum, id) => sum + seeds[id], 0);
   const totalCrops = CROP_IDS.reduce(
@@ -482,11 +459,15 @@ export default function PlayPage() {
           seeds={seeds}
           plots={plots}
           phaseCount={phaseCount}
+          inventory={inventory}
+          display={display}
           cropIds={CROP_IDS}
           isStuck={isStuck}
           onBuySeed={buySeed}
           onPlant={plant}
           onHarvest={harvest}
+          onPutOnDisplay={putOnDisplay}
+          onTakeFromDisplay={takeFromDisplay}
           onReceiveGiftSeed={receiveGiftSeed}
         />
       )}
@@ -524,67 +505,6 @@ export default function PlayPage() {
       >
         {advanceLabel}
       </button>
-
-      <section>
-        <h2 className="text-sm font-semibold">진열대</h2>
-        <p className="mb-2 text-xs text-neutral-500">
-          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{getDisplayBonusPercent(1)}%)
-        </p>
-        <div className="grid grid-cols-6 gap-2">
-          {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
-            const cropId = display[index];
-
-            if (!cropId) {
-              return (
-                <button
-                  key={index}
-                  onClick={() => setIsDisplayPickerOpen(true)}
-                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
-                >
-                  빈 진열대
-                  <br />
-                  올리기
-                </button>
-              );
-            }
-
-            return (
-              <button
-                key={index}
-                onClick={() => takeFromDisplay(index)}
-                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
-              >
-                ✨ {CROPS[cropId].mutantName}
-                <br />
-                <span className="font-normal text-amber-600">내리기</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {isDisplayPickerOpen && (
-        <CropPickerModal
-          title="진열할 작물 고르기"
-          description="변이 작물만 진열할 수 있다"
-          onClose={() => setIsDisplayPickerOpen(false)}
-        >
-          {CROP_IDS.map((cropId) => (
-            <button
-              key={cropId}
-              onClick={() => putOnDisplay(cropId)}
-              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm"
-            >
-              <span>
-                {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].mutantName}
-              </span>
-              <span className="tabular-nums text-neutral-500">
-                {inventory[cropId].mutant}개
-              </span>
-            </button>
-          ))}
-        </CropPickerModal>
-      )}
 
       {cookResult && <CookingModal result={cookResult} onClear={clearDishes} />}
 

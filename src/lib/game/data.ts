@@ -54,7 +54,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '토마토',
     growPhases: 1,
     seedPrice: 20,
-    mutationRate: 0.03,
+    mutationRate: 0.1,
     mutantName: '황금 토마토',
   },
   corn: {
@@ -62,7 +62,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '옥수수',
     growPhases: 3,
     seedPrice: 50,
-    mutationRate: 0.01,
+    mutationRate: 0.1,
     mutantName: '황금 옥수수',
   },
 };

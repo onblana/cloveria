@@ -3,19 +3,25 @@
 import { useState } from 'react';
 
 import { CropPickerModal } from '@/components/common/CropPickerModal';
-import { CROPS, CROP_EMOJI, type CropId, type Plot } from '@/lib/game/data';
+import { DisplayModal } from '@/components/farm/DisplayModal';
+import { CROPS, CROP_EMOJI, type CropId, type Inventory, type Plot } from '@/lib/game/data';
 
 interface FarmViewProps {
   gold: number;
   seeds: Record<CropId, number>;
   plots: (Plot | null)[];
   phaseCount: number;
+  inventory: Inventory;
+  /** 진열대에 올라간 변이 작물 목록. 순서가 곧 칸 순서다 */
+  display: CropId[];
   cropIds: CropId[];
   /** 진행이 막혀 요정의 도움이 필요한 상태인지 */
   isStuck: boolean;
   onBuySeed: (cropId: CropId, qty: number) => void;
   onPlant: (index: number, cropId: CropId) => void;
   onHarvest: (index: number) => void;
+  onPutOnDisplay: (cropId: CropId) => void;
+  onTakeFromDisplay: (index: number) => void;
   onReceiveGiftSeed: () => void;
 }
 
@@ -25,11 +31,15 @@ export function FarmView({
   seeds,
   plots,
   phaseCount,
+  inventory,
+  display,
   cropIds,
   isStuck,
   onBuySeed,
   onPlant,
   onHarvest,
+  onPutOnDisplay,
+  onTakeFromDisplay,
   onReceiveGiftSeed,
 }: FarmViewProps) {
   // 씨앗 가게에서 고른 작물과 수량. 저장 대상이 아니라 이 화면에서만 쓰는 값이다
@@ -38,6 +48,7 @@ export function FarmView({
   const [seedQty, setSeedQty] = useState(1);
   // 심을 작물을 고르는 중인 밭 칸. null이면 창이 닫힌 상태다
   const [plantTarget, setPlantTarget] = useState<number | null>(null);
+  const [isDisplayOpen, setIsDisplayOpen] = useState(false);
 
   const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
   const canBuy = shopCrop !== null && gold >= seedTotal;
@@ -65,12 +76,20 @@ export function FarmView({
 
   return (
     <>
-      <button
-        onClick={openShop}
-        className="h-11 rounded-lg border border-neutral-300 px-3 text-sm"
-      >
-        🌱 씨앗 상점
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={openShop}
+          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm"
+        >
+          🌱 씨앗 상점
+        </button>
+        <button
+          onClick={() => setIsDisplayOpen(true)}
+          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm"
+        >
+          ✨ 진열대
+        </button>
+      </div>
 
       <section>
         <h2 className="mb-2 text-base font-bold">밭</h2>
@@ -208,6 +227,17 @@ export function FarmView({
             </button>
           ))}
         </CropPickerModal>
+      )}
+
+      {isDisplayOpen && (
+        <DisplayModal
+          display={display}
+          inventory={inventory}
+          cropIds={cropIds}
+          onPutOnDisplay={onPutOnDisplay}
+          onTakeFromDisplay={onTakeFromDisplay}
+          onClose={() => setIsDisplayOpen(false)}
+        />
       )}
     </>
   );

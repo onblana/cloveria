@@ -21,7 +21,7 @@ interface DayEndScreenProps {
 const DARK_MS = 1000;
 const DAWN_MS = 2000;
 /** 흰 화면이 된 뒤 아침 문구를 띄워 두는 시간 */
-const MORNING_MS = 2000;
+const MORNING_MS = 1000;
 /** 덮개가 걷히며 아침 화면이 드러나는 시간. 어두워질 때와 같은 속도로 맞춘다 */
 const FADE_OUT_MS = DARK_MS;
 

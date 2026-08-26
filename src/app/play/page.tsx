@@ -445,7 +445,7 @@ export default function PlayPage() {
         </div>
       </header>
 
-      <section className="space-y-1 text-sm text-neutral-600">
+      <section className="text-xs">
         {log.map((line, index) => (
           <p key={`${phaseCount}-${index}-${line}`} className={LOG_TONES[index]}>
             {line}
@@ -485,8 +485,8 @@ export default function PlayPage() {
         />
       )}
 
-      <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
-        <h2 className="mb-2 text-base font-bold">가지고 있는 요리 재료</h2>
+      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
+        <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
             <span>

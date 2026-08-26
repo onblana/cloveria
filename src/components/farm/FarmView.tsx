@@ -89,7 +89,7 @@ export function FarmView({
           onClick={() => setIsDisplayOpen(true)}
           className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm"
         >
-          ✨ 진열대
+          ✨ 특별 작물 진열대
         </button>
       </div>
 
@@ -103,7 +103,7 @@ export function FarmView({
                 <button
                   key={index}
                   onClick={() => setPlantTarget(index)}
-                  className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs font-light text-neutral-400"
+                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs font-light text-neutral-400"
                 >
                   빈 밭
                   <br />
@@ -121,7 +121,7 @@ export function FarmView({
                 key={index}
                 onClick={() => onHarvest(index)}
                 disabled={!ready}
-                className={`h-24 rounded-lg border text-xs ${
+                className={`h-20 rounded-lg border text-xs ${
                   ready
                     ? 'border-green-500 bg-green-50 font-semibold text-green-800'
                     : 'border-neutral-200 text-neutral-500'
@@ -136,6 +136,8 @@ export function FarmView({
                 ) : (
                   <>
                     🌱
+                    <br />
+                    {crop.name}
                     <br />
                     {Math.floor((grown / crop.growPhases) * 100)}%
                   </>

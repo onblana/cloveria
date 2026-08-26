@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
@@ -78,6 +78,8 @@ const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
  */
 export default function PlayPage() {
   const router = useRouter();
+  // 기록 읽기는 한 번만. 개발 모드에서 이펙트가 두 번 돌아도 로그가 겹치지 않게 한다
+  const hasLoaded = useRef(false);
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
   const [screen, setScreen] = useState<'loading' | 'playing'>('loading');
   const [playerName, setPlayerName] = useState('');
@@ -170,6 +172,9 @@ export default function PlayPage() {
 
   // 기록을 여는 화면이다. 읽을 기록이 없으면 이름부터 받도록 시작 화면으로 돌려보낸다
   useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+
     loadGame()
       .then((saved) => {
         if (!saved) {

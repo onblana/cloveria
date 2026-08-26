@@ -52,17 +52,17 @@ export const CROPS: Record<CropId, Crop> = {
   tomato: {
     id: 'tomato',
     name: '토마토',
-    growPhases: 1,
+    growPhases: 2,
     seedPrice: 20,
-    specialRate: 0.7,
+    specialRate: 0.3,
     specialName: '황금 토마토',
   },
   corn: {
     id: 'corn',
     name: '옥수수',
-    growPhases: 3,
+    growPhases: 4,
     seedPrice: 50,
-    specialRate: 0.7,
+    specialRate: 0.3,
     specialName: '황금 옥수수',
   },
 };

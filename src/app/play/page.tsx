@@ -31,17 +31,12 @@ import {
   getGreeting,
   type CropId,
   type Customer,
-  type CustomerId,
   type Inventory,
+  type Order,
   type RecipeId,
 } from '@/lib/game/data';
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 import { LoadingScreen } from '@/components/LoadingScreen';
-
-interface Order {
-  customer: CustomerId;
-  recipeId: RecipeId;
-}
 
 const CROP_IDS = Object.keys(CROPS) as CropId[];
 const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
@@ -59,11 +54,23 @@ const createSeeds = (): Record<CropId, number> =>
 const emptySeeds = (): Record<CropId, number> =>
   Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 
-const pickCustomer = () => CUSTOMER_IDS[Math.floor(Math.random() * CUSTOMER_IDS.length)];
 const pickComment = (customer: Customer) =>
   customer.comments[Math.floor(Math.random() * customer.comments.length)];
 const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
-const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
+
+/**
+ * 한 번의 장사 동안 찾아올 손님들. 손님 순서를 섞어 한 명당 한 번씩만 오게 한다.
+ * 장사를 열 때마다 새로 만들어서, 재료가 없어 마감해도 다음 장사엔 다른 손님이 온다.
+ */
+const createOrders = (): Order[] => {
+  const shuffled = [...CUSTOMER_IDS];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled.map((customer) => ({ customer, recipeId: pickRecipe() }));
+};
 const rollMutation = (rate: number) => Math.random() < rate;
 
 /** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
@@ -83,7 +90,8 @@ export default function PlayPage() {
   const [seeds, setSeeds] = useState(createSeeds);
   const [inventory, setInventory] = useState(createInventory);
   const [plots, setPlots] = useState(createEmptyPlots);
-  const [order, setOrder] = useState<Order | null>(null);
+  // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
+  const [orders, setOrders] = useState<Order[]>([]);
   const [display, setDisplay] = useState<CropId[]>([]);
   const [log, setLog] = useState<string[]>([]);
   // 손님별 친밀도. 요리를 낼 때마다 오른다
@@ -121,7 +129,12 @@ export default function PlayPage() {
       return;
     }
 
-    setTick(tick + 1);
+    const next = tick + 1;
+    // 장사를 열 때마다 손님 대기열을 새로 짠다
+    if (getDayPhase(next).kind === 'bistro') {
+      setOrders(createOrders());
+    }
+    setTick(next);
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -131,6 +144,7 @@ export default function PlayPage() {
   const wakeUp = () => {
     const next = tick + 1;
     setTick(next);
+    setOrders([]);
     setDaily(createDailyRecord());
     pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
   };
@@ -153,7 +167,7 @@ export default function PlayPage() {
         setDisplay(saved.display);
         setDaily(saved.daily);
         setFriendship({ ...createFriendship(), ...saved.friendship });
-        setOrder(createOrder());
+        setOrders(saved.orders);
         setPhase('playing');
         pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
       })
@@ -174,8 +188,21 @@ export default function PlayPage() {
       display,
       daily,
       friendship,
+      orders,
     }).catch(() => undefined);
-  }, [phase, playerName, gold, tick, seeds, inventory, plots, display, daily, friendship]);
+  }, [
+    phase,
+    playerName,
+    gold,
+    tick,
+    seeds,
+    inventory,
+    plots,
+    display,
+    daily,
+    friendship,
+    orders,
+  ]);
 
   const startGame = () => {
     const name = nameInput.trim();
@@ -183,7 +210,6 @@ export default function PlayPage() {
 
     setPlayerName(name);
     setPhase('playing');
-    setOrder(createOrder());
     pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
     pushLog(`${name}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
   };
@@ -231,6 +257,7 @@ export default function PlayPage() {
     }
   };
 
+  const order = orders[0] ?? null;
   const recipe = order ? RECIPES[order.recipeId] : null;
 
   const { canCook, canCookSignature } = useMemo(() => {
@@ -274,9 +301,11 @@ export default function PlayPage() {
     setGold((prev) => prev + price);
     setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
 
+    // 연출 도중에 새로고침해도 같은 손님을 다시 받지 않도록 여기서 대기열을 줄인다
+    setOrders((prev) => prev.slice(1));
+
     const customer = CUSTOMERS[order.customer];
     const dishName = useSignature ? recipe.signatureName : recipe.name;
-    // 다음 손님은 그릇을 치운 뒤에 들어온다
     setCookResult({
       customerName: customer.name,
       playerName,
@@ -303,10 +332,7 @@ export default function PlayPage() {
   };
 
   // 그릇을 치우면 연출 창이 닫히고 다음 손님이 들어온다
-  const clearDishes = () => {
-    setCookResult(null);
-    setOrder(createOrder());
-  };
+  const clearDishes = () => setCookResult(null);
 
   const buySeed = (cropId: CropId, qty: number) => {
     const total = CROPS[cropId].seedPrice * qty;
@@ -454,6 +480,7 @@ export default function PlayPage() {
         <BistroView
           customer={order ? CUSTOMERS[order.customer] : null}
           greeting={order ? getGreeting(CUSTOMERS[order.customer], friendship[order.customer]) : ''}
+          phaseName={dayPhase.name}
           recipe={recipe}
           displayCount={display.length}
           canCook={canCook}

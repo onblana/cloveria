@@ -12,6 +12,8 @@ interface BistroViewProps {
   customer: Customer | null;
   /** 친밀도에 맞춰 고른 인사. 고르는 기준은 data.ts가 들고 있다 */
   greeting: string;
+  /** 지금 단계 이름(점심·저녁). 손님이 다 다녀갔을 때 안내에 쓴다 */
+  phaseName: string;
   recipe: Recipe | null;
   /** 진열대에 올라간 변이 작물 수. 판매가 보너스 계산에 쓰인다 */
   displayCount: number;
@@ -24,31 +26,41 @@ interface BistroViewProps {
 export function BistroView({
   customer,
   greeting,
+  phaseName,
   recipe,
   displayCount,
   canCook,
   canCookSignature,
   onCook,
 }: BistroViewProps) {
+  // 대기열이 비면 더 받을 손님이 없다
+  if (!customer || !recipe) {
+    return (
+      <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+        모든 손님이 다녀갔다.
+        <br />
+        {phaseName} 장사를 마무리 해야겠다.
+      </p>
+    );
+  }
+
   return (
     <>
-      {customer && recipe && (
-        <section className="rounded-lg bg-amber-50 p-4">
-          <h2 className="text-sm font-semibold text-amber-600">
-            {greeting} - {customer.name} 방문
-          </h2>
-          <p className="mt-1 text-sm">
-            주문한 요리는 <strong>{recipe.name}</strong>!
-          </p>
-          <p className="mt-1 text-sm text-green-700">
-            요리 재료:{' '}
-            {(Object.entries(recipe.ingredients) as [CropId, number][])
-              .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개 필요`)
-              .join(', ')}
-            {displayCount > 0 && ` · 진열 보너스 +${getDisplayBonusPercent(displayCount)}%`}
-          </p>
-        </section>
-      )}
+      <section className="rounded-lg bg-amber-50 p-4">
+        <h2 className="text-sm font-semibold text-amber-600">
+          {greeting} - {customer.name} 방문
+        </h2>
+        <p className="mt-1 text-sm">
+          주문한 요리는 <strong>{recipe.name}</strong>!
+        </p>
+        <p className="mt-1 text-sm text-green-700">
+          요리 재료:{' '}
+          {(Object.entries(recipe.ingredients) as [CropId, number][])
+            .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개 필요`)
+            .join(', ')}
+          {displayCount > 0 && ` · 진열 보너스 +${getDisplayBonusPercent(displayCount)}%`}
+        </p>
+      </section>
 
       {/* 만들 수 없는 요리는 흐리게 두지 않고 아예 감춘다 */}
       {canCook || canCookSignature ? (

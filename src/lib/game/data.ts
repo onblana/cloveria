@@ -315,6 +315,12 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
 
 export const CUSTOMER_IDS = Object.keys(CUSTOMERS) as CustomerId[];
 
+/** 손님 한 명과 그 손님이 시킬 요리. 장사 한 번의 대기열이 이것들로 이뤄진다 */
+export interface Order {
+  customer: CustomerId;
+  recipeId: RecipeId;
+}
+
 /**
  * 친밀도를 나누는 기준은 두 가지이고 서로 다르다. 한쪽만 보고 고치지 말 것.
  * - 인사(greetings): 3단계 — 처음(0~29) / 익숙(GREETING_FAMILIAR_AT~99) / 단골(FRIENDSHIP_MAX)

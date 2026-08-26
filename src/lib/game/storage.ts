@@ -7,6 +7,7 @@ import {
   type CropId,
   type CustomerId,
   type DailyRecord,
+  type Order,
   type Plot,
 } from './data';
 
@@ -37,11 +38,18 @@ export interface SaveData {
   daily: DailyRecord;
   /** 손님별 친밀도 */
   friendship: Friendship;
+  /** 이번 장사에 남은 손님들. 장사 도중에 이어 시작해도 순서가 유지된다 */
+  orders: Order[];
 }
 
-/** 날짜·밭·하루 집계·친밀도를 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
-type PartialSaveData = Omit<SaveData, 'tick' | 'plots' | 'daily' | 'friendship'> &
-  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily'>> & { friendship?: FriendshipStock };
+/** 날짜·밭·하루 집계·친밀도·대기열을 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
+type PartialSaveData = Omit<
+  SaveData,
+  'tick' | 'plots' | 'daily' | 'friendship' | 'orders'
+> &
+  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily' | 'orders'>> & {
+    friendship?: FriendshipStock;
+  };
 
 /** 토마토만 저장하던 시절의 형식 */
 interface LegacySaveData {
@@ -76,6 +84,7 @@ const normalize = (data: PartialSaveData): SaveData => ({
   plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
   daily: data.daily ?? createDailyRecord(),
   friendship: { ...createFriendship(), ...data.friendship },
+  orders: data.orders ?? [],
 });
 
 function openDatabase(): Promise<IDBDatabase> {

@@ -13,7 +13,6 @@ import {
   CROPS,
   CROP_EMOJI,
   CUSTOMERS,
-  CUSTOMER_COMMENTS,
   CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
   DISPLAY_SLOTS,
@@ -31,6 +30,7 @@ import {
   getFriendshipMessage,
   getGreeting,
   type CropId,
+  type Customer,
   type CustomerId,
   type Inventory,
   type RecipeId,
@@ -60,8 +60,8 @@ const emptySeeds = (): Record<CropId, number> =>
   Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 
 const pickCustomer = () => CUSTOMER_IDS[Math.floor(Math.random() * CUSTOMER_IDS.length)];
-const pickComment = () =>
-  CUSTOMER_COMMENTS[Math.floor(Math.random() * CUSTOMER_COMMENTS.length)];
+const pickComment = (customer: Customer) =>
+  customer.comments[Math.floor(Math.random() * customer.comments.length)];
 const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
 const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
 const rollMutation = (rate: number) => Math.random() < rate;
@@ -282,7 +282,7 @@ export default function PlayPage() {
       playerName,
       dishName,
       price,
-      comment: pickComment(),
+      comment: pickComment(customer),
     });
     pushLog(
       useSignature

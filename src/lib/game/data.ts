@@ -143,6 +143,8 @@ export interface Customer {
   name: string;
   /** 친밀도 단계별로 식당에 들어서며 건네는 첫마디 (처음 / 익숙 / 단골) */
   greetings: [string, string, string];
+  /** 요리를 다 먹고 남기는 한마디. 나이와 말투가 제각각이라 손님마다 따로 둔다 */
+  comments: [string, string, string];
   /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
   postposition1: '와' | '과';
   postposition2: '는' | '은';
@@ -157,6 +159,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '오, 오늘도 문을 열었구먼',
       '자네 음식 없이는 하루가 안 가',
     ],
+    comments: [
+      '허, 솜씨가 늘었구먼.',
+      '이 맛이면 마을 자랑거리지.',
+      '오늘도 잘 먹었네. 수고했어.',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
@@ -167,6 +174,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '배달 끝나고 오는 길입니다!',
       '오늘도 마지막 배달은 여기로 잡았습니다',
       '이 집 밥 먹으려고 배달 순서를 바꿨어요',
+    ],
+    comments: [
+      '이거 먹고 남은 배달도 거뜬하겠어요!',
+      '점심시간이 기다려지는 이유가 생겼네요.',
+      '잘 먹었습니다. 다음에 또 들를게요!',
     ],
     postposition1: '와',
     postposition2: '는',
@@ -179,6 +191,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '가게에 꽃 좀 놓을까? 여기랑 잘 어울릴 것 같은데',
       '오늘 제일 예쁜 꽃, 여기 두고 갈게',
     ],
+    comments: [
+      '와, 이거 진짜 맛있다.',
+      '그릇이 예뻐서 그런가, 더 맛있는 것 같아.',
+      '잘 먹었어요~ 오늘도 고마워요.',
+    ],
     postposition1: '와',
     postposition2: '는',
   },
@@ -189,6 +206,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '아이구구 허리야...',
       '허리는 여전한데 여긴 오게 되네',
       '자네 얼굴 보러 오는 거지 뭐. 밥은 덤이고',
+    ],
+    comments: [
+      '이가 시원찮아도 이건 술술 넘어가는구먼.',
+      '허리는 아파도 입은 즐겁구먼.',
+      '잘 먹었네. 자네 덕에 오래 살겠어.',
     ],
     postposition1: '와',
     postposition2: '는',
@@ -201,6 +223,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '다른 마을 돌다가도 여기가 생각나더군',
       '이 집 때문에 이 마을엔 꼭 들르기로 했네',
     ],
+    comments: [
+      '값을 더 쳐줘도 아깝지 않겠군.',
+      '여러 마을 다녀봤지만 이 정도는 드물어.',
+      '잘 먹었네. 다음 장에 또 들르지.',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
@@ -211,6 +238,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '할아버지가 여기 맛있다고 했어요!',
       '저 혼자 왔어요! 이제 길 다 외웠어요',
       '커서 여기 같은 식당 할 거예요!',
+    ],
+    comments: [
+      '우와! 진짜 맛있어요!',
+      '이거 어떻게 만드는 거예요?',
+      '할아버지한테도 자랑할래요!',
     ],
     postposition1: '과',
     postposition2: '은',
@@ -223,6 +255,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '... (작게) 안녕하세요',
       '오늘은... 이야기 좀 해도 될까요',
     ],
+    comments: [
+      '... 맛있어요. (작게)',
+      '... (그릇을 조용히 비운다)',
+      '... 또 올게요.',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
@@ -233,6 +270,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잠깐 짬 냈어. 빨리 되지?',
       '오늘은 좀 여유 있어. 천천히 해도 돼',
       '여기 앉아 있으면 다림질 생각이 안 나',
+    ],
+    comments: [
+      '어머, 이거 물건이네.',
+      '이 맛에 짬 내서 오는 거지.',
+      '잘 먹었어. 다음엔 좀 더 앉았다 갈게.',
     ],
     postposition1: '와',
     postposition2: '는',
@@ -245,6 +287,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '또 왔네. 뭐 좀 남았나?',
       '우리 가게 물건보다 여기 밥이 더 잘 팔리겠어',
     ],
+    comments: [
+      '나쁘지 않군.',
+      '... 맛있네. 이런 말 잘 안 하는데.',
+      '잘 먹었어. 계산은 여기 두고 가네.',
+    ],
     postposition1: '과',
     postposition2: '은',
   },
@@ -255,6 +302,11 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '오늘 물건 좋았어!',
       '좋은 놈으로 몇 마리 남겨왔어. 나중에 줄게',
       '이봐, 다음엔 내 생선으로 요리 하나 만들어봐!',
+    ],
+    comments: [
+      '크, 이 맛이야!',
+      '내 생선도 이렇게 요리해줘!',
+      '잘 먹었다! 다음엔 좋은 놈으로 가져오지!',
     ],
     postposition1: '과',
     postposition2: '은',
@@ -313,20 +365,6 @@ export const getFriendshipMessage = (
   const reached = FRIENDSHIP_MILESTONES.find((step) => before < step.at && after >= step.at);
   return reached ? reached.message(customer) : null;
 };
-
-/** 요리를 다 먹은 손님이 남기는 한마디. 요리 종류와 상관없이 무작위로 하나 고른다 */
-export const CUSTOMER_COMMENTS = [
-  '이 맛이야. 오늘 하루가 다 풀리는군.',
-  '접시까지 먹을 뻔했네.',
-  '오늘따라 간이 딱 맞는데?',
-  '이런 건 도시에서도 못 먹어봤어.',
-  '한 그릇 더 시킬 뻔했잖아.',
-  '허, 솜씨가 늘었구먼.',
-  '먹고 나니 힘이 나는걸.',
-  '이 집, 잘 되겠어.',
-  '재료가 좋으니 맛이 다르네.',
-  '잘 먹었습니다. 또 올게요.',
-];
 
 // TODO: 칭호. 아래 두 가지를 먼저 넣고, 달성 횟수를 세는 카운터도 저장 형식에 추가할 것
 //       - 토마토 파스타 전문 요리사: 토마토 파스타를 20번 요리했다

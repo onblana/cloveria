@@ -80,3 +80,31 @@ button {
   /* 더블탭 확대를 막아 버튼 반응이 즉시 오게 한다. 손가락 확대는 그대로 동작 */
   touch-action: manipulation;
 }
+
+/*
+ * 시작 화면의 이야기 문단이 순서대로 나타나는 연출.
+ * 나타나는 시점은 문단마다 달라 animation-delay를 인라인으로 준다.
+ */
+@keyframes story-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.story-line {
+  opacity: 0;
+  animation: story-in 0.8s ease-out forwards;
+}
+
+/* 움직임을 줄여달라고 설정한 기기에서는 이동 없이 나타나기만 한다 */
+@media (prefers-reduced-motion: reduce) {
+  .story-line {
+    animation-duration: 0.01s;
+    transform: none;
+  }
+}

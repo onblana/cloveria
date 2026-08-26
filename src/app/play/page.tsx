@@ -11,6 +11,7 @@ import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
+  CROP_IDS,
   CUSTOMERS,
   CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
@@ -19,8 +20,12 @@ import {
   INITIAL_GOLD,
   INITIAL_SEEDS,
   RECIPES,
+  STARTER_CROP,
   createDailyRecord,
   createEmptyPlots,
+  createEmptyStock,
+  createInventory,
+  createStarterSeeds,
   createFriendship,
   getDayNumber,
   getDayPhase,
@@ -30,29 +35,16 @@ import {
   revealGrownPlots,
   type CropId,
   type Customer,
-  type Inventory,
   type Order,
   type Plot,
   type RecipeId,
 } from '@/lib/game/data';
+import { useRouter } from 'next/navigation';
+
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
-const CROP_IDS = Object.keys(CROPS) as CropId[];
 const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
-
-/** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
-const STARTER_CROP: CropId = 'tomato';
-
-const createInventory = (): Inventory =>
-  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, special: 0 }])) as Inventory;
-const createSeeds = (): Record<CropId, number> =>
-  Object.fromEntries(
-    CROP_IDS.map((id) => [id, id === STARTER_CROP ? INITIAL_SEEDS : 0]),
-  ) as Record<CropId, number>;
-// 저장된 기록을 덮어씌울 바탕. 기록에 없는 작물은 0개로 남는다
-const emptySeeds = (): Record<CropId, number> =>
-  Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
 
 const pickComment = (customer: Customer) =>
   customer.comments[Math.floor(Math.random() * customer.comments.length)];
@@ -85,16 +77,16 @@ const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
  *       React.memo와 useCallback으로 다시 그리는 범위를 좁힐 것
  */
 export default function PlayPage() {
+  const router = useRouter();
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
-  const [screen, setScreen] = useState<'loading' | 'naming' | 'playing'>('loading');
-  const [nameInput, setNameInput] = useState('');
+  const [screen, setScreen] = useState<'loading' | 'playing'>('loading');
   const [playerName, setPlayerName] = useState('');
 
   const [phaseCount, setPhaseCount] = useState(0);
   const [gold, setGold] = useState(INITIAL_GOLD);
   // TODO: 평판은 쓰이는 곳이 없어 주석처리. 손님 종류·레시피 해금을 붙일 때 다시 도입할 것
   // const [reputation, setReputation] = useState(0);
-  const [seeds, setSeeds] = useState(createSeeds);
+  const [seeds, setSeeds] = useState(createStarterSeeds);
   const [inventory, setInventory] = useState(createInventory);
   const [plots, setPlots] = useState(createEmptyPlots);
   // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
@@ -174,19 +166,19 @@ export default function PlayPage() {
     revealGrown(plots, next);
   };
 
-  // 첫 진입 시 저장된 기록이 있으면 이어서 시작한다
+  // 기록을 여는 화면이다. 읽을 기록이 없으면 이름부터 받도록 시작 화면으로 돌려보낸다
   useEffect(() => {
     loadGame()
       .then((saved) => {
         if (!saved) {
-          setScreen('naming');
+          router.replace('/');
           return;
         }
 
         setPlayerName(saved.playerName);
         setGold(saved.gold);
         setPhaseCount(saved.phaseCount);
-        setSeeds({ ...emptySeeds(), ...saved.seeds });
+        setSeeds({ ...createEmptyStock(), ...saved.seeds });
         setInventory({ ...createInventory(), ...saved.crops });
         setPlots(revealGrownPlots(saved.plots, saved.phaseCount).plots);
         setDisplay(saved.display);
@@ -194,11 +186,18 @@ export default function PlayPage() {
         setFriendship({ ...createFriendship(), ...saved.friendship });
         setOrders(saved.orders);
         setScreen('playing');
-        pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
+
+        // 시작 화면이 막 만든 기록이면 도입부를, 이어서 하는 기록이면 인사를 띄운다
+        if (saved.introShown) {
+          pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
+        } else {
+          pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
+          pushLog(`${saved.playerName}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
+        }
       })
-      .catch(() => setScreen('naming'));
+      .catch(() => router.replace('/'));
     // setDisplay는 useDisplay가 돌려주는 setState라 값이 바뀌지 않는다
-  }, [pushLog, setDisplay]);
+  }, [pushLog, setDisplay, router]);
 
   /*
    * 저장 대상이 바뀔 때마다 기록한다.
@@ -219,6 +218,7 @@ export default function PlayPage() {
         daily,
         friendship,
         orders,
+        introShown: true,
       }).catch(() => undefined);
     }, SAVE_DELAY_MS);
 
@@ -236,16 +236,6 @@ export default function PlayPage() {
     friendship,
     orders,
   ]);
-
-  const startGame = () => {
-    const name = nameInput.trim();
-    if (!name) return;
-
-    setPlayerName(name);
-    setScreen('playing');
-    pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
-    pushLog(`${name}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
-  };
 
   const plant = (index: number, cropId: CropId) => {
     if (plots[index] || seeds[cropId] <= 0) return;
@@ -398,43 +388,6 @@ export default function PlayPage() {
 
   if (screen === 'loading') {
     return <LoadingScreen message="기록을 불러오는 중..." />;
-  }
-
-  if (screen === 'naming') {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
-        <div className="space-y-3 text-sm leading-relaxed text-neutral-600">
-          <p>클로버 마을에는 오래된 전설이 있다.</p>
-          <p>
-            이 마을에서 농사를 지으면 클로버의 행운으로 희귀한 작물을 얻을 수 있다는 것. 단,
-            선택받은 자만이 그 행운을 얻을 자격이 있다고 한다.
-          </p>
-          <p>이제는 아무도 믿지 않는 이야기다.</p>
-          <p>당신은 할머니가 남겨 주신, 텃밭이 딸린 작은 식당을 운영하기 위해 도시에서 시골로 내려왔다.</p>
-        </div>
-
-        <div className="space-y-3">
-          <label htmlFor="player-name" className="block text-lg font-semibold">
-            당신의 이름은 무엇인가요?
-          </label>
-          <input
-            id="player-name"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && startGame()}
-            placeholder="이름을 입력하세요"
-            className="w-full rounded-lg border border-neutral-300 px-4 py-2 outline-none focus:border-green-500"
-          />
-          <button
-            onClick={startGame}
-            disabled={!nameInput.trim()}
-            className="w-full rounded-lg bg-green-600 py-2 font-semibold text-white disabled:bg-neutral-300"
-          >
-            마을로 돌아가기
-          </button>
-        </div>
-      </main>
-    );
   }
 
   return (

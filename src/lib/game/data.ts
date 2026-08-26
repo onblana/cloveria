@@ -67,6 +67,8 @@ export const CROPS: Record<CropId, Crop> = {
   },
 };
 
+export const CROP_IDS = Object.keys(CROPS) as CropId[];
+
 /** 밭과 목록에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
 export const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
 
@@ -409,6 +411,21 @@ export const getFriendshipMessage = (
 //       - 토마토 키우기의 달인: 토마토 50개를 수확했다
 
 export const INITIAL_SEEDS = 4;
+
+/** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
+export const STARTER_CROP: CropId = 'tomato';
+
+/** 작물별 보유량 바탕. 기록에 없는 작물은 0개로 남는다 */
+export const createEmptyStock = (): Record<CropId, number> =>
+  Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
+
+export const createInventory = (): Inventory =>
+  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, special: 0 }])) as Inventory;
+
+export const createStarterSeeds = (): Record<CropId, number> => ({
+  ...createEmptyStock(),
+  [STARTER_CROP]: INITIAL_SEEDS,
+});
 export const INITIAL_GOLD = 100;
 
 /** 특별 작물을 진열칸 수 */

@@ -47,11 +47,26 @@ type PartialSaveData = Omit<
   SaveData,
   'phaseCount' | 'plots' | 'daily' | 'friendship' | 'orders'
 > &
-  Partial<Pick<SaveData, 'phaseCount' | 'plots' | 'daily' | 'orders'>> & {
+  Partial<Pick<SaveData, 'phaseCount' | 'daily' | 'orders'>> & {
     friendship?: FriendshipStock;
+    plots?: (Plot | LegacyPlot | null)[];
     /** phaseCount로 이름을 바꾸기 전에 저장된 값 */
     tick?: number;
   };
+
+/** plantedPhase로 이름을 바꾸기 전에 저장된 밭 칸 */
+interface LegacyPlot {
+  cropId: CropId;
+  plantedTick: number;
+}
+
+/** 이름을 바꾸기 전 기록을 지금 형식으로 맞춘다 */
+const normalizePlot = (plot: Plot | LegacyPlot | null | undefined): Plot | null => {
+  if (!plot) return null;
+  if ('plantedPhase' in plot) return plot;
+
+  return { cropId: plot.cropId, plantedPhase: plot.plantedTick };
+};
 
 /** 토마토만 저장하던 시절의 형식 */
 interface LegacySaveData {
@@ -83,7 +98,7 @@ const migrate = (data: LegacySaveData): PartialSaveData => ({
 const normalize = (data: PartialSaveData): SaveData => ({
   ...data,
   phaseCount: data.phaseCount ?? data.tick ?? 0,
-  plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
+  plots: createEmptyPlots().map((_, index) => normalizePlot(data.plots?.[index])),
   daily: data.daily ?? createDailyRecord(),
   friendship: { ...createFriendship(), ...data.friendship },
   orders: data.orders ?? [],

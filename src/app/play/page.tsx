@@ -26,10 +26,13 @@ import {
   getDayPhase,
   getFriendshipMessage,
   getGreeting,
+  isPlotReady,
+  revealGrownPlots,
   type CropId,
   type Customer,
   type Inventory,
   type Order,
+  type Plot,
   type RecipeId,
 } from '@/lib/game/data';
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
@@ -42,7 +45,7 @@ const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 const STARTER_CROP: CropId = 'tomato';
 
 const createInventory = (): Inventory =>
-  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, mutant: 0 }])) as Inventory;
+  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, special: 0 }])) as Inventory;
 const createSeeds = (): Record<CropId, number> =>
   Object.fromEntries(
     CROP_IDS.map((id) => [id, id === STARTER_CROP ? INITIAL_SEEDS : 0]),
@@ -68,7 +71,6 @@ const createOrders = (): Order[] => {
 
   return shuffled.map((customer) => ({ customer, recipeId: pickRecipe() }));
 };
-const rollMutation = (rate: number) => Math.random() < rate;
 
 /** 저장을 미루는 시간 (ms). 연달아 바뀌어도 마지막 한 번만 쓴다 */
 const SAVE_DELAY_MS = 400;
@@ -129,6 +131,19 @@ export default function PlayPage() {
         ? `${day}일차 마무리하기`
         : `${nextPhase.name} 장사 시작하기`;
 
+  /*
+   * 다 자란 칸의 특별 여부를 그 자리에서 정해 밭에 저장한다.
+   * 수확할 때 뽑지 않으므로 화면에 미리 보여줄 수 있고, 새로고침해도 결과가 바뀌지 않는다.
+   */
+  const revealGrown = (grownPlots: (Plot | null)[], at: number) => {
+    const { plots: next, revealed } = revealGrownPlots(grownPlots, at);
+
+    setPlots(next);
+    for (const cropId of revealed) {
+      pushLog(`✨ ${CROPS[cropId].specialName}이(가) 자랐다! 요정이 반짝인다.`);
+    }
+  };
+
   // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
   const advancePhase = () => {
     // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
@@ -143,6 +158,7 @@ export default function PlayPage() {
       setOrders(createOrders());
     }
     setPhaseCount(next);
+    revealGrown(plots, next);
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -155,6 +171,7 @@ export default function PlayPage() {
     setOrders([]);
     setDaily(createDailyRecord());
     pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
+    revealGrown(plots, next);
   };
 
   // 첫 진입 시 저장된 기록이 있으면 이어서 시작한다
@@ -171,7 +188,7 @@ export default function PlayPage() {
         setPhaseCount(saved.phaseCount);
         setSeeds({ ...emptySeeds(), ...saved.seeds });
         setInventory({ ...createInventory(), ...saved.crops });
-        setPlots(saved.plots);
+        setPlots(revealGrownPlots(saved.plots, saved.phaseCount).plots);
         setDisplay(saved.display);
         setDaily(saved.daily);
         setFriendship({ ...createFriendship(), ...saved.friendship });
@@ -239,79 +256,72 @@ export default function PlayPage() {
 
   const harvest = (index: number) => {
     const plot = plots[index];
-    if (!plot) return;
+    if (!plot || !isPlotReady(plot, phaseCount)) return;
 
-    const crop = CROPS[plot.cropId];
-    if (phaseCount - plot.plantedPhase < crop.growPhases) return;
-
-    const isMutant = rollMutation(crop.mutationRate);
+    // 특별 여부는 다 자란 순간 이미 정해져 저장돼 있다
+    const isSpecial = plot.isSpecial ?? false;
     setInventory((prev) => ({
       ...prev,
       [plot.cropId]: {
-        normal: prev[plot.cropId].normal + (isMutant ? 0 : 1),
-        mutant: prev[plot.cropId].mutant + (isMutant ? 1 : 0),
+        normal: prev[plot.cropId].normal + (isSpecial ? 0 : 1),
+        special: prev[plot.cropId].special + (isSpecial ? 1 : 0),
       },
     }));
     setPlots((prev) => prev.map((p, i) => (i === index ? null : p)));
     setDaily((prev) => {
-      const before = prev.harvest[plot.cropId] ?? { normal: 0, mutant: 0 };
+      const before = prev.harvest[plot.cropId] ?? { normal: 0, special: 0 };
       return {
         ...prev,
         harvest: {
           ...prev.harvest,
           [plot.cropId]: {
-            normal: before.normal + (isMutant ? 0 : 1),
-            mutant: before.mutant + (isMutant ? 1 : 0),
+            normal: before.normal + (isSpecial ? 0 : 1),
+            special: before.special + (isSpecial ? 1 : 0),
           },
         },
       };
     });
-
-    // 일반 수확은 너무 잦아 로그를 남기지 않고, 드물게 나오는 변이만 알린다
-    if (isMutant) {
-      pushLog(`✨ ${crop.mutantName}이(가) 자랐다! 요정이 반짝인다.`);
-    }
   };
 
   const order = orders[0] ?? null;
   const recipe = order ? RECIPES[order.recipeId] : null;
 
-  const { canCook, canCookSignature } = useMemo(() => {
-    if (!recipe) return { canCook: false, canCookSignature: false };
+  const { canCook, canCookSpecial } = useMemo(() => {
+    if (!recipe) return { canCook: false, canCookSpecial: false };
 
     const entries = Object.entries(recipe.ingredients) as [CropId, number][];
     return {
       canCook: entries.every(([cropId, need]) => inventory[cropId].normal >= need),
-      canCookSignature: entries.every(
+      canCookSpecial: entries.every(
         ([cropId, need]) =>
-          inventory[cropId].mutant >= 1 &&
-          inventory[cropId].normal + inventory[cropId].mutant >= need,
+          inventory[cropId].special >= 1 &&
+          inventory[cropId].normal + inventory[cropId].special >= need,
       ),
     };
   }, [recipe, inventory]);
 
-  const cook = (useSignature: boolean) => {
+  const cook = (useSpecial: boolean) => {
     if (!order || !recipe) return;
-    if (useSignature ? !canCookSignature : !canCook) return;
+    if (useSpecial ? !canCookSpecial : !canCook) return;
 
     const entries = Object.entries(recipe.ingredients) as [CropId, number][];
     setInventory((prev) => {
       const next = { ...prev };
       for (const [cropId, need] of entries) {
-        // 시그니처는 변이 재료를 우선 소모하고, 일반 조리는 일반 재료만 쓴다
-        const usedMutant = useSignature ? Math.min(prev[cropId].mutant, need) : 0;
+        // 특별 요리는 특별 재료를 우선 소모하고, 일반 조리는 일반 재료만 쓴다
+        const usedSpecial = useSpecial ? Math.min(prev[cropId].special, need) : 0;
         next[cropId] = {
-          normal: prev[cropId].normal - (need - usedMutant),
-          mutant: prev[cropId].mutant - usedMutant,
+          normal: prev[cropId].normal - (need - usedSpecial),
+          special: prev[cropId].special - usedSpecial,
         };
       }
       return next;
     });
 
     const basePrice = Math.round(
-      useSignature ? recipe.price * recipe.signatureMultiplier : recipe.price,
+      useSpecial ? recipe.price * recipe.specialMultiplier : recipe.price,
     );
-    // 진열대에 놓인 변이 작물이 많을수록 모든 요리가 비싸게 팔린다
+    // 진열대에 놓인 특별 작물이 많을수록 모든 요리가 비싸게 팔린다
     const price = Math.round(basePrice * (1 + displayCount * DISPLAY_BONUS_PER_ITEM));
     // 원래 금액과 따로 보여주려고 보너스만 떼어 둔다. 합계는 price 그대로다
     const displayBonus = price - basePrice;
@@ -323,7 +333,7 @@ export default function PlayPage() {
     setOrders((prev) => prev.slice(1));
 
     const customer = CUSTOMERS[order.customer];
-    const dishName = useSignature ? recipe.signatureName : recipe.name;
+    const dishName = useSpecial ? recipe.specialName : recipe.name;
     setCookResult({
       customerName: customer.name,
       playerName,
@@ -334,8 +344,8 @@ export default function PlayPage() {
       comment: pickComment(customer),
     });
     pushLog(
-      useSignature
-        ? `${customer.name}에게 ${recipe.signatureName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
+      useSpecial
+        ? `${customer.name}에게 ${recipe.specialName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
         : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
     );
 
@@ -367,7 +377,7 @@ export default function PlayPage() {
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
   const totalSeeds = CROP_IDS.reduce((sum, id) => sum + seeds[id], 0);
   const totalCrops = CROP_IDS.reduce(
-    (sum, id) => sum + inventory[id].normal + inventory[id].mutant,
+    (sum, id) => sum + inventory[id].normal + inventory[id].special,
     0,
   );
   const cheapestSeedPrice = Math.min(...CROP_IDS.map((id) => CROPS[id].seedPrice));
@@ -484,7 +494,7 @@ export default function PlayPage() {
           recipe={recipe}
           displayCount={displayCount}
           canCook={canCook}
-          canCookSignature={canCookSignature}
+          canCookSpecial={canCookSpecial}
           onCook={cook}
         />
       )}
@@ -497,7 +507,7 @@ export default function PlayPage() {
               {CROPS[cropId].name} {inventory[cropId].normal}개
             </span>
             <span className="text-amber-700">
-              ✨ {CROPS[cropId].mutantName} {inventory[cropId].mutant}개
+              ✨ {CROPS[cropId].specialName} {inventory[cropId].special}개
             </span>
           </div>
         ))}

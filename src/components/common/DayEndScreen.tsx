@@ -78,7 +78,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
   const harvested = cropIds
     .map((cropId) => ({ cropId, ...shown.record.harvest[cropId] }))
-    .filter((item) => (item.normal ?? 0) + (item.mutant ?? 0) > 0);
+    .filter((item) => (item.normal ?? 0) + (item.special ?? 0) > 0);
 
   const isNightColor = stage === 'night' || stage === 'result';
   // 덮개가 나타나고 사라지는 속도 (위 상수와 같은 값). 하얘질 때만 느리다
@@ -118,17 +118,17 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
               <p className="text-neutral-500">오늘은 거둔 것이 없다.</p>
             ) : (
               <ul className="space-y-1">
-                {harvested.map(({ cropId, normal = 0, mutant = 0 }) => (
+                {harvested.map(({ cropId, normal = 0, special = 0 }) => (
                   <li key={cropId} className="flex items-center justify-between">
                     <span>
                       {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                     </span>
                     <span className="tabular-nums text-neutral-300">
                       {normal > 0 && `${normal}개`}
-                      {normal > 0 && mutant > 0 && ' · '}
-                      {mutant > 0 && (
+                      {normal > 0 && special > 0 && ' · '}
+                      {special > 0 && (
                         <span className="text-amber-300">
-                          ✨ {CROPS[cropId].mutantName} {mutant}개
+                          ✨ {CROPS[cropId].specialName} {special}개
                         </span>
                       )}
                     </span>

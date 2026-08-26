@@ -7,6 +7,7 @@ import { DisplayModal } from '@/components/farm/DisplayModal';
 import {
   CROPS,
   CROP_EMOJI,
+  isPlotReady,
   type CropId,
   type Display,
   type Inventory,
@@ -121,7 +122,7 @@ export function FarmView({
 
             const crop = CROPS[plot.cropId];
             const grown = phaseCount - plot.plantedPhase;
-            const ready = grown >= crop.growPhases;
+            const ready = isPlotReady(plot, phaseCount);
 
             return (
               <button
@@ -129,13 +130,17 @@ export function FarmView({
                 onClick={() => onHarvest(index)}
                 disabled={!ready}
                 className={`h-20 rounded-lg border text-xs ${
-                  ready
-                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                    : 'border-neutral-200 text-neutral-500'
+                  !ready
+                    ? 'border-neutral-200 text-neutral-500'
+                    : plot.isSpecial
+                      ? 'border-amber-400 bg-amber-50 font-semibold text-amber-800'
+                      : 'border-green-500 bg-green-50 font-semibold text-green-800'
                 }`}
               >
                 {ready ? (
                   <>
+                    {/* 특별 작물은 수확 전에 ✨로 알아볼 수 있다 */}
+                    {plot.isSpecial && '✨'}
                     {CROP_EMOJI[plot.cropId]}
                     <br />
                     수확하기

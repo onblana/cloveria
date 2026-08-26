@@ -23,7 +23,7 @@ const SAVE_KEY = 'current';
  * 모든 작물이 들어있지 않은 부분 기록을 허용한다.
  */
 export type SeedStock = Partial<Record<CropId, number>>;
-export type CropStock = Partial<Record<CropId, { normal: number; mutant: number }>>;
+export type CropStock = Partial<Record<CropId, { normal: number; special: number }>>;
 /** 손님이 늘어도 예전 기록을 읽을 수 있도록 부분 기록을 허용한다 */
 export type FriendshipStock = Partial<Record<CustomerId, number>>;
 
@@ -89,7 +89,7 @@ const migrate = (data: LegacySaveData): PartialSaveData => ({
   playerName: data.playerName,
   gold: data.gold,
   seeds: { tomato: data.seeds ?? INITIAL_SEEDS },
-  crops: { tomato: { normal: data.tomato, mutant: data.goldenTomato } },
+  crops: { tomato: { normal: data.tomato, special: data.goldenTomato } },
   display: data.display,
 });
 

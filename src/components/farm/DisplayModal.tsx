@@ -28,14 +28,14 @@ export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptio
 
   // 고른 칸에 그대로 올린다. 앞으로 당겨 채우지 않아 유저가 놓은 자리가 유지된다
   const putOnDisplay = (index: number, cropId: CropId) => {
-    if (display[index] || inventory[cropId].mutant <= 0) return;
+    if (display[index] || inventory[cropId].special <= 0) return;
 
     setInventory((prev) => ({
       ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
+      [cropId]: { ...prev[cropId], special: prev[cropId].special - 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? cropId : slot)));
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
+    pushLog(`${CROPS[cropId].specialName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
   // 내린 칸은 비워만 두고 뒤 칸을 당기지 않는다
@@ -45,10 +45,10 @@ export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptio
 
     setInventory((prev) => ({
       ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant + 1 },
+      [cropId]: { ...prev[cropId], special: prev[cropId].special + 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? null : slot)));
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
+    pushLog(`${CROPS[cropId].specialName}을(를) 진열대에서 내렸다.`);
   };
 
   /** 판매가 보너스는 칸 위치가 아니라 올려둔 개수로만 정해진다 */
@@ -101,13 +101,13 @@ export function DisplayModal({
           <button
             key={cropId}
             onClick={() => putOnDisplay(cropId)}
-            disabled={inventory[cropId].mutant <= 0}
+            disabled={inventory[cropId].special <= 0}
             className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm disabled:opacity-40"
           >
             <span>
-              {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].mutantName}
+              {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].specialName}
             </span>
-            <span className="tabular-nums text-neutral-500">{inventory[cropId].mutant}개</span>
+            <span className="tabular-nums text-neutral-500">{inventory[cropId].special}개</span>
           </button>
         ))}
       </CropPickerModal>
@@ -142,7 +142,7 @@ export function DisplayModal({
               onClick={() => onTakeFromDisplay(index)}
               className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
             >
-              ✨ {CROPS[cropId].mutantName}
+              ✨ {CROPS[cropId].specialName}
               <br />
               <span className="font-normal text-amber-600">내리기</span>
             </button>

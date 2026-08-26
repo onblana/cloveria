@@ -44,8 +44,8 @@ export interface Crop {
   name: string;
   growPhases: number; // 심은 뒤 수확까지 필요한 단계 수
   seedPrice: number;
-  mutationRate: number; // 수확 시 변이종이 나올 확률
-  mutantName: string;
+  specialRate: number; // 다 자란 순간 특별 작물로 판정될 확률
+  specialName: string;
 }
 
 export const CROPS: Record<CropId, Crop> = {
@@ -54,24 +54,24 @@ export const CROPS: Record<CropId, Crop> = {
     name: '토마토',
     growPhases: 1,
     seedPrice: 20,
-    mutationRate: 0.7,
-    mutantName: '황금 토마토',
+    specialRate: 0.7,
+    specialName: '황금 토마토',
   },
   corn: {
     id: 'corn',
     name: '옥수수',
     growPhases: 3,
     seedPrice: 50,
-    mutationRate: 0.7,
-    mutantName: '황금 옥수수',
+    specialRate: 0.7,
+    specialName: '황금 옥수수',
   },
 };
 
 /** 밭과 목록에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
 export const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
 
-/** 작물별 보유 수량 (일반 / 변이) */
-export type Inventory = Record<CropId, { normal: number; mutant: number }>;
+/** 작물별 보유 수량 (일반 / 특별) */
+export type Inventory = Record<CropId, { normal: number; special: number }>;
 
 /**
  * 하루 동안의 성과. 밤에 하루를 마무리할 때 보여주고 다음 날 아침에 비운다.
@@ -82,7 +82,7 @@ export interface DailyRecord {
   earned: number;
   /** 씨앗을 사는 데 쓴 돈 */
   spent: number;
-  harvest: Partial<Record<CropId, { normal: number; mutant: number }>>;
+  harvest: Partial<Record<CropId, { normal: number; special: number }>>;
 }
 
 export const createDailyRecord = (): DailyRecord => ({ earned: 0, spent: 0, harvest: {} });
@@ -91,38 +91,70 @@ export const createDailyRecord = (): DailyRecord => ({ earned: 0, spent: 0, harv
 export interface Plot {
   cropId: CropId;
   plantedPhase: number;
+  /**
+   * 특별 작물 여부. 다 자란 순간 한 번 정해져 저장되므로,
+   * 새로고침하거나 수확을 미뤄도 결과가 바뀌지 않는다. 아직 자라는 중이면 undefined다.
+   */
+  isSpecial?: boolean;
 }
 
 export const createEmptyPlots = (): (Plot | null)[] =>
   Array.from({ length: PLOT_COUNT }, () => null);
+
+/** 다 자라 수확할 수 있는 칸인지 */
+export const isPlotReady = (plot: Plot, phaseCount: number) =>
+  phaseCount - plot.plantedPhase >= CROPS[plot.cropId].growPhases;
+
+/** 특별 작물 판정. 화면과 무관한 규칙이라 여기에 둔다 */
+export const rollSpecial = (rate: number) => Math.random() < rate;
+
+/**
+ * 다 자랐는데 아직 판정하지 않은 칸의 특별 여부를 정한다.
+ * 바뀐 칸이 없으면 원래 배열을 그대로 돌려주므로 다시 그릴 일이 없다.
+ */
+export const revealGrownPlots = (plots: (Plot | null)[], phaseCount: number) => {
+  const revealed: CropId[] = [];
+  const next = plots.map((plot) => {
+    if (!plot || plot.isSpecial !== undefined || !isPlotReady(plot, phaseCount)) return plot;
+
+    const isSpecial = rollSpecial(CROPS[plot.cropId].specialRate);
+    if (isSpecial) revealed.push(plot.cropId);
+
+    return { ...plot, isSpecial };
+  });
+
+  const changed = next.some((plot, index) => plot !== plots[index]);
+
+  return { plots: changed ? next : plots, revealed };
+};
 
 export type RecipeId = 'tomatoPasta' | 'cornSoup';
 
 export interface Recipe {
   id: RecipeId;
   name: string;
-  signatureName: string; // 변이 재료로 만들었을 때의 시그니처 메뉴 이름
+  specialName: string; // 특별 재료로 만들었을 때의 특별 요리 메뉴 이름
   ingredients: Partial<Record<CropId, number>>;
   price: number;
-  signatureMultiplier: number; // 시그니처 메뉴의 가격 배수
+  specialMultiplier: number; // 특별 요리 메뉴의 가격 배수
 }
 
 export const RECIPES: Record<RecipeId, Recipe> = {
   tomatoPasta: {
     id: 'tomatoPasta',
     name: '토마토 파스타',
-    signatureName: '행운의 토마토 파스타',
+    specialName: '행운의 토마토 파스타',
     ingredients: { tomato: 2 },
     price: 80,
-    signatureMultiplier: 1.5,
+    specialMultiplier: 1.5,
   },
   cornSoup: {
     id: 'cornSoup',
     name: '옥수수 스프',
-    signatureName: '행운의 옥수수 스프',
+    specialName: '행운의 옥수수 스프',
     ingredients: { corn: 2 },
     price: 200,
-    signatureMultiplier: 1.5,
+    specialMultiplier: 1.5,
   },
 };
 
@@ -379,7 +411,7 @@ export const getFriendshipMessage = (
 export const INITIAL_SEEDS = 4;
 export const INITIAL_GOLD = 100;
 
-/** 변이 작물을 진열칸 수 */
+/** 특별 작물을 진열칸 수 */
 export const DISPLAY_SLOTS = 6;
 
 /** 진열대. 칸 순서를 그대로 유지하며, 비어 있는 칸은 null이다 */

@@ -15,11 +15,11 @@ interface BistroViewProps {
   /** 지금 단계 이름(점심·저녁). 손님이 다 다녀갔을 때 안내에 쓴다 */
   phaseName: string;
   recipe: Recipe | null;
-  /** 진열대에 올라간 변이 작물 수. 판매가 보너스 계산에 쓰인다 */
+  /** 진열대에 올라간 특별 작물 수. 판매가 보너스 계산에 쓰인다 */
   displayCount: number;
   canCook: boolean;
-  canCookSignature: boolean;
-  onCook: (useSignature: boolean) => void;
+  canCookSpecial: boolean;
+  onCook: (useSpecial: boolean) => void;
 }
 
 /** 식당 단계(점심·저녁) 화면 */
@@ -30,7 +30,7 @@ export function BistroView({
   recipe,
   displayCount,
   canCook,
-  canCookSignature,
+  canCookSpecial,
   onCook,
 }: BistroViewProps) {
   // 대기열이 비면 더 받을 손님이 없다
@@ -63,7 +63,7 @@ export function BistroView({
       </section>
 
       {/* 만들 수 없는 요리는 흐리게 두지 않고 아예 감춘다 */}
-      {canCook || canCookSignature ? (
+      {canCook || canCookSpecial ? (
         <section className="flex gap-2">
           {canCook && (
             <button
@@ -73,7 +73,7 @@ export function BistroView({
               🍳 요리해서 내놓기
             </button>
           )}
-          {canCookSignature && (
+          {canCookSpecial && (
             <button
               onClick={() => onCook(true)}
               className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white"

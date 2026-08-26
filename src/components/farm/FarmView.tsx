@@ -60,11 +60,13 @@ export function FarmView({
     setIsShopOpen(true);
   };
 
-  // 여러 번 살 수 있도록 사고 나서도 창을 닫지 않는다
+  // 여러 번 살 수 있도록 사고 나서도 창을 닫지 않는다.
+  // 다만 고른 작물은 비워 같은 작물을 잘못 연달아 사는 일을 막는다. 수량은 그대로 둔다
   const buy = () => {
     if (!shopCrop || !canBuy) return;
 
     onBuySeed(shopCrop, seedQty);
+    setShopCrop(null);
   };
 
   const plant = (cropId: CropId) => {
@@ -201,7 +203,7 @@ export function FarmView({
               disabled={!canBuy}
               className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
             >
-              {shopCrop ? `${seedTotal}골드에 사기` : '작물을 고르세요'}
+              {shopCrop ? `${seedTotal}골드에 사기` : '작물 선택'}
             </button>
           </div>
         </CropPickerModal>

@@ -79,11 +79,11 @@ const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
 
 export default function PlayPage() {
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
-  const [phase, setPhase] = useState<'loading' | 'naming' | 'playing'>('loading');
+  const [screen, setScreen] = useState<'loading' | 'naming' | 'playing'>('loading');
   const [nameInput, setNameInput] = useState('');
   const [playerName, setPlayerName] = useState('');
 
-  const [tick, setTick] = useState(0);
+  const [phaseCount, setPhaseCount] = useState(0);
   const [gold, setGold] = useState(INITIAL_GOLD);
   // TODO: 평판은 쓰이는 곳이 없어 주석처리. 손님 종류·레시피 해금을 붙일 때 다시 도입할 것
   // const [reputation, setReputation] = useState(0);
@@ -109,9 +109,9 @@ export default function PlayPage() {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
   }, []);
 
-  const day = getDayNumber(tick);
-  const dayPhase = getDayPhase(tick);
-  const nextPhase = getDayPhase(tick + 1);
+  const day = getDayNumber(phaseCount);
+  const dayPhase = getDayPhase(phaseCount);
+  const nextPhase = getDayPhase(phaseCount + 1);
 
   // 단계마다 '넘어가기'의 의미가 달라 문구를 따로 만든다
   const advanceLabel =
@@ -121,7 +121,7 @@ export default function PlayPage() {
         ? `${day}일차 마무리하기`
         : `${nextPhase.name} 장사 시작하기`;
 
-  // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 1틱만큼 자란다
+  // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
   const advancePhase = () => {
     // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
     if (dayPhase.id === 'night') {
@@ -129,12 +129,12 @@ export default function PlayPage() {
       return;
     }
 
-    const next = tick + 1;
+    const next = phaseCount + 1;
     // 장사를 열 때마다 손님 대기열을 새로 짠다
     if (getDayPhase(next).kind === 'bistro') {
       setOrders(createOrders());
     }
-    setTick(next);
+    setPhaseCount(next);
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -142,8 +142,8 @@ export default function PlayPage() {
 
   // 화면이 덮여 있는 동안 다음 날 아침으로 넘어가고 집계를 비운다
   const wakeUp = () => {
-    const next = tick + 1;
-    setTick(next);
+    const next = phaseCount + 1;
+    setPhaseCount(next);
     setOrders([]);
     setDaily(createDailyRecord());
     pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
@@ -154,13 +154,13 @@ export default function PlayPage() {
     loadGame()
       .then((saved) => {
         if (!saved) {
-          setPhase('naming');
+          setScreen('naming');
           return;
         }
 
         setPlayerName(saved.playerName);
         setGold(saved.gold);
-        setTick(saved.tick);
+        setPhaseCount(saved.phaseCount);
         setSeeds({ ...emptySeeds(), ...saved.seeds });
         setInventory({ ...createInventory(), ...saved.crops });
         setPlots(saved.plots);
@@ -168,20 +168,20 @@ export default function PlayPage() {
         setDaily(saved.daily);
         setFriendship({ ...createFriendship(), ...saved.friendship });
         setOrders(saved.orders);
-        setPhase('playing');
+        setScreen('playing');
         pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
       })
-      .catch(() => setPhase('naming'));
+      .catch(() => setScreen('naming'));
   }, [pushLog]);
 
   // 저장 대상이 바뀔 때마다 기록한다
   useEffect(() => {
-    if (phase !== 'playing') return;
+    if (screen !== 'playing') return;
 
     saveGame({
       playerName,
       gold,
-      tick,
+      phaseCount,
       seeds,
       crops: inventory,
       plots,
@@ -191,10 +191,10 @@ export default function PlayPage() {
       orders,
     }).catch(() => undefined);
   }, [
-    phase,
+    screen,
     playerName,
     gold,
-    tick,
+    phaseCount,
     seeds,
     inventory,
     plots,
@@ -209,7 +209,7 @@ export default function PlayPage() {
     if (!name) return;
 
     setPlayerName(name);
-    setPhase('playing');
+    setScreen('playing');
     pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
     pushLog(`${name}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
   };
@@ -218,7 +218,7 @@ export default function PlayPage() {
     if (plots[index] || seeds[cropId] <= 0) return;
 
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] - 1 }));
-    setPlots((prev) => prev.map((plot, i) => (i === index ? { cropId, plantedTick: tick } : plot)));
+    setPlots((prev) => prev.map((plot, i) => (i === index ? { cropId, plantedPhase: phaseCount } : plot)));
   };
 
   const harvest = (index: number) => {
@@ -226,7 +226,7 @@ export default function PlayPage() {
     if (!plot) return;
 
     const crop = CROPS[plot.cropId];
-    if (tick - plot.plantedTick < crop.growTicks) return;
+    if (phaseCount - plot.plantedPhase < crop.growPhases) return;
 
     const isMutant = rollMutation(crop.mutationRate);
     setInventory((prev) => ({
@@ -376,7 +376,7 @@ export default function PlayPage() {
   );
   const cheapestSeedPrice = Math.min(...CROP_IDS.map((id) => CROPS[id].seedPrice));
   const isStuck =
-    phase === 'playing' &&
+    screen === 'playing' &&
     totalSeeds === 0 &&
     gold < cheapestSeedPrice &&
     plots.every((plot) => plot === null) &&
@@ -393,11 +393,11 @@ export default function PlayPage() {
       .catch(() => undefined);
   };
 
-  if (phase === 'loading') {
+  if (screen === 'loading') {
     return <LoadingScreen message="기록을 불러오는 중..." />;
   }
 
-  if (phase === 'naming') {
+  if (screen === 'naming') {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
         <div className="space-y-3 text-sm leading-relaxed text-neutral-600">
@@ -455,7 +455,7 @@ export default function PlayPage() {
 
       <section className="space-y-1 text-sm text-neutral-600">
         {log.map((line, index) => (
-          <p key={`${tick}-${index}-${line}`} className={LOG_TONES[index]}>
+          <p key={`${phaseCount}-${index}-${line}`} className={LOG_TONES[index]}>
             {line}
           </p>
         ))}
@@ -466,7 +466,7 @@ export default function PlayPage() {
           gold={gold}
           seeds={seeds}
           plots={plots}
-          tick={tick}
+          phaseCount={phaseCount}
           cropIds={CROP_IDS}
           isStuck={isStuck}
           onBuySeed={buySeed}

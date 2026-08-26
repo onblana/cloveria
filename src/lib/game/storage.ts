@@ -29,7 +29,7 @@ export interface SaveData {
   playerName: string;
   gold: number;
   /** 누적 단계 전환 수. 여기서 날짜와 현재 단계가 나온다 */
-  tick: number;
+  phaseCount: number;
   seeds: SeedStock;
   crops: CropStock;
   plots: (Plot | null)[];
@@ -45,10 +45,12 @@ export interface SaveData {
 /** 날짜·밭·하루 집계·친밀도·대기열을 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
 type PartialSaveData = Omit<
   SaveData,
-  'tick' | 'plots' | 'daily' | 'friendship' | 'orders'
+  'phaseCount' | 'plots' | 'daily' | 'friendship' | 'orders'
 > &
-  Partial<Pick<SaveData, 'tick' | 'plots' | 'daily' | 'orders'>> & {
+  Partial<Pick<SaveData, 'phaseCount' | 'plots' | 'daily' | 'orders'>> & {
     friendship?: FriendshipStock;
+    /** phaseCount로 이름을 바꾸기 전에 저장된 값 */
+    tick?: number;
   };
 
 /** 토마토만 저장하던 시절의 형식 */
@@ -80,7 +82,7 @@ const migrate = (data: LegacySaveData): PartialSaveData => ({
  */
 const normalize = (data: PartialSaveData): SaveData => ({
   ...data,
-  tick: data.tick ?? 0,
+  phaseCount: data.phaseCount ?? data.tick ?? 0,
   plots: createEmptyPlots().map((_, index) => data.plots?.[index] ?? null),
   daily: data.daily ?? createDailyRecord(),
   friendship: { ...createFriendship(), ...data.friendship },

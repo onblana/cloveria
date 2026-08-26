@@ -1,6 +1,6 @@
 /**
  * 게임 내 시간은 실시간이 아니라 단계 전환으로 흐른다.
- * 하루는 아침부터 밤까지 5단계이고, 단계가 하나 넘어갈 때 1틱이 지난다.
+ * 하루는 아침부터 밤까지 5단계이고, 단계가 하나 넘어갈 때 phaseCount가 1씩 오른다.
  */
 export type DayPhaseId = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
 
@@ -23,10 +23,10 @@ export const DAY_PHASES: DayPhase[] = [
 
 export const PHASES_PER_DAY = DAY_PHASES.length;
 
-/** 누적 틱을 며칠째인지로 바꾼다 (시작이 1일차) */
-export const getDayNumber = (tick: number) => Math.floor(tick / PHASES_PER_DAY) + 1;
+/** 누적 단계 수를 며칠째인지로 바꾼다 (시작이 1일차) */
+export const getDayNumber = (phaseCount: number) => Math.floor(phaseCount / PHASES_PER_DAY) + 1;
 
-export const getDayPhase = (tick: number) => DAY_PHASES[tick % PHASES_PER_DAY];
+export const getDayPhase = (phaseCount: number) => DAY_PHASES[phaseCount % PHASES_PER_DAY];
 
 // TODO: 마을 사람들 화면. 손님 목록과 친밀도를 한눈에 볼 수 있게 만들 것
 
@@ -42,7 +42,7 @@ export type CropId = 'tomato' | 'corn';
 export interface Crop {
   id: CropId;
   name: string;
-  growTicks: number; // 심은 뒤 수확까지 필요한 틱 수
+  growPhases: number; // 심은 뒤 수확까지 필요한 단계 수
   seedPrice: number;
   mutationRate: number; // 수확 시 변이종이 나올 확률
   mutantName: string;
@@ -52,7 +52,7 @@ export const CROPS: Record<CropId, Crop> = {
   tomato: {
     id: 'tomato',
     name: '토마토',
-    growTicks: 1,
+    growPhases: 1,
     seedPrice: 20,
     mutationRate: 0.03,
     mutantName: '황금 토마토',
@@ -60,7 +60,7 @@ export const CROPS: Record<CropId, Crop> = {
   corn: {
     id: 'corn',
     name: '옥수수',
-    growTicks: 3,
+    growPhases: 3,
     seedPrice: 50,
     mutationRate: 0.01,
     mutantName: '황금 옥수수',
@@ -87,10 +87,10 @@ export interface DailyRecord {
 
 export const createDailyRecord = (): DailyRecord => ({ earned: 0, spent: 0, harvest: {} });
 
-/** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 틱과 비교해 성장도를 계산할 수 있다 */
+/** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 단계 수와 비교해 성장도를 계산할 수 있다 */
 export interface Plot {
   cropId: CropId;
-  plantedTick: number;
+  plantedPhase: number;
 }
 
 export const createEmptyPlots = (): (Plot | null)[] =>

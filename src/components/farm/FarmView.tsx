@@ -9,7 +9,7 @@ interface FarmViewProps {
   gold: number;
   seeds: Record<CropId, number>;
   plots: (Plot | null)[];
-  tick: number;
+  phaseCount: number;
   cropIds: CropId[];
   /** 진행이 막혀 요정의 도움이 필요한 상태인지 */
   isStuck: boolean;
@@ -24,7 +24,7 @@ export function FarmView({
   gold,
   seeds,
   plots,
-  tick,
+  phaseCount,
   cropIds,
   isStuck,
   onBuySeed,
@@ -92,8 +92,8 @@ export function FarmView({
             }
 
             const crop = CROPS[plot.cropId];
-            const grown = tick - plot.plantedTick;
-            const ready = grown >= crop.growTicks;
+            const grown = phaseCount - plot.plantedPhase;
+            const ready = grown >= crop.growPhases;
 
             return (
               <button
@@ -116,7 +116,7 @@ export function FarmView({
                   <>
                     🌱
                     <br />
-                    {Math.floor((grown / crop.growTicks) * 100)}%
+                    {Math.floor((grown / crop.growPhases) * 100)}%
                   </>
                 )}
               </button>

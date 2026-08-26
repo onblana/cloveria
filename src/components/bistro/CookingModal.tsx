@@ -7,6 +7,11 @@ export interface CookResult {
   customerName: string;
   playerName: string;
   dishName: string;
+  /** 진열 보너스가 붙기 전 금액 */
+  basePrice: number;
+  /** 진열대 덕분에 더 받은 금액. 진열대가 비어 있으면 0이다 */
+  displayBonus: number;
+  /** 손님이 실제로 낸 금액(원래 금액 + 진열 보너스) */
   price: number;
   /** 다 먹은 손님이 남기는 한마디 */
   comment: string;
@@ -73,7 +78,18 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
             <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
               “{result.comment}”
             </p>
-            <p className="text-center text-sm font-semibold">{result.price}골드를 얻었다</p>
+            <div className="space-y-1 text-center text-sm">
+              {/* 진열대가 비어 있으면 보너스 줄을 아예 감춘다 */}
+              {result.displayBonus > 0 && (
+                <p className="text-neutral-500">
+                  원래 금액 {result.basePrice}골드{' '}
+                  <span className="font-semibold text-amber-600">
+                    + 진열대 보너스로 {result.displayBonus}골드를 더 받았다
+                  </span>
+                </p>
+              )}
+              <p className="font-semibold">{result.price}골드를 얻었다</p>
+            </div>
             <button
               onClick={onClear}
               className="min-h-12 w-full rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"

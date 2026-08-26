@@ -308,11 +308,13 @@ export default function PlayPage() {
       return next;
     });
 
-    const basePrice = useSignature
-      ? recipe.price * recipe.signatureMultiplier
-      : recipe.price;
+    const basePrice = Math.round(
+      useSignature ? recipe.price * recipe.signatureMultiplier : recipe.price,
+    );
     // 진열대에 놓인 변이 작물이 많을수록 모든 요리가 비싸게 팔린다
     const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
+    // 원래 금액과 따로 보여주려고 보너스만 떼어 둔다. 합계는 price 그대로다
+    const displayBonus = price - basePrice;
 
     setGold((prev) => prev + price);
     setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
@@ -326,6 +328,8 @@ export default function PlayPage() {
       customerName: customer.name,
       playerName,
       dishName,
+      basePrice,
+      displayBonus,
       price,
       comment: pickComment(customer),
     });

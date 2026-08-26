@@ -290,8 +290,11 @@ export default function PlayPage() {
     if (!recipe) return { canCook: false, canCookSpecial: false };
 
     const entries = Object.entries(recipe.ingredients) as [CropId, number][];
+    // 재료 수만 채우면 일반 요리도 만들 수 있다. 특별 작물이 있어도 둘 중에서 고를 수 있게 한다
     return {
-      canCook: entries.every(([cropId, need]) => inventory[cropId].normal >= need),
+      canCook: entries.every(
+        ([cropId, need]) => inventory[cropId].normal + inventory[cropId].special >= need,
+      ),
       canCookSpecial: entries.every(
         ([cropId, need]) =>
           inventory[cropId].special >= 1 &&
@@ -308,8 +311,10 @@ export default function PlayPage() {
     setInventory((prev) => {
       const next = { ...prev };
       for (const [cropId, need] of entries) {
-        // 특별 요리는 특별 재료를 우선 소모하고, 일반 조리는 일반 재료만 쓴다
-        const usedSpecial = useSpecial ? Math.min(prev[cropId].special, need) : 0;
+        // 특별 요리는 특별 재료를 우선 쓰고, 일반 요리는 일반 재료가 모자랄 때만 특별 재료로 채운다
+        const usedSpecial = useSpecial
+          ? Math.min(prev[cropId].special, need)
+          : Math.max(need - prev[cropId].normal, 0);
         next[cropId] = {
           normal: prev[cropId].normal - (need - usedSpecial),
           special: prev[cropId].special - usedSpecial,

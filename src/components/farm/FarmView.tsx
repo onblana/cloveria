@@ -49,11 +49,11 @@ export function FarmView({
     setIsShopOpen(true);
   };
 
+  // 여러 번 살 수 있도록 사고 나서도 창을 닫지 않는다
   const buy = () => {
     if (!shopCrop || !canBuy) return;
 
     onBuySeed(shopCrop, seedQty);
-    setIsShopOpen(false);
   };
 
   const plant = (cropId: CropId) => {
@@ -69,7 +69,7 @@ export function FarmView({
         onClick={openShop}
         className="h-11 rounded-lg border border-neutral-300 px-3 text-sm"
       >
-        🌱 씨앗 사러 가기
+        🌱 씨앗 상점
       </button>
 
       <section>
@@ -138,7 +138,7 @@ export function FarmView({
 
       {isShopOpen && (
         <CropPickerModal
-          title="씨앗 사기"
+          title="씨앗 상점"
           description={`가진 골드 ${gold}골드`}
           onClose={() => setIsShopOpen(false)}
         >

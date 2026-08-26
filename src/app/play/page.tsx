@@ -490,13 +490,9 @@ export default function PlayPage() {
       )}
 
       <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
+        <h2 className="mb-2 text-base font-bold">가지고 있는 요리 재료</h2>
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
-            {dayPhase.kind === 'farm' &&
-              <span>
-                {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
-              </span>
-            }
             <span>
               {CROPS[cropId].name} {inventory[cropId].normal}개
             </span>

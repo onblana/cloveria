@@ -111,7 +111,7 @@ export default function PlayPage() {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
   }, []);
 
-  const { display, setDisplay, putOnDisplay, takeFromDisplay } = useDisplay({
+  const { display, setDisplay, displayCount, putOnDisplay, takeFromDisplay } = useDisplay({
     inventory,
     setInventory,
     pushLog,
@@ -312,7 +312,7 @@ export default function PlayPage() {
       useSignature ? recipe.price * recipe.signatureMultiplier : recipe.price,
     );
     // 진열대에 놓인 변이 작물이 많을수록 모든 요리가 비싸게 팔린다
-    const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
+    const price = Math.round(basePrice * (1 + displayCount * DISPLAY_BONUS_PER_ITEM));
     // 원래 금액과 따로 보여주려고 보너스만 떼어 둔다. 합계는 price 그대로다
     const displayBonus = price - basePrice;
 
@@ -431,7 +431,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-5 p-2 sm:gap-6 sm:p-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col p-2 gap-3 sm:gap-4 sm:p-8">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
         <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
@@ -482,7 +482,7 @@ export default function PlayPage() {
           greeting={order ? getGreeting(CUSTOMERS[order.customer], friendship[order.customer]) : ''}
           phaseName={dayPhase.name}
           recipe={recipe}
-          displayCount={display.length}
+          displayCount={displayCount}
           canCook={canCook}
           canCookSignature={canCookSignature}
           onCook={cook}

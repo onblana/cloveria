@@ -4,7 +4,14 @@ import { useState } from 'react';
 
 import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DisplayModal } from '@/components/farm/DisplayModal';
-import { CROPS, CROP_EMOJI, type CropId, type Inventory, type Plot } from '@/lib/game/data';
+import {
+  CROPS,
+  CROP_EMOJI,
+  type CropId,
+  type Display,
+  type Inventory,
+  type Plot,
+} from '@/lib/game/data';
 
 interface FarmViewProps {
   gold: number;
@@ -12,15 +19,15 @@ interface FarmViewProps {
   plots: (Plot | null)[];
   phaseCount: number;
   inventory: Inventory;
-  /** 진열대에 올라간 변이 작물 목록. 순서가 곧 칸 순서다 */
-  display: CropId[];
+  /** 진열대의 칸별 내용. 비어 있는 칸은 null이다 */
+  display: Display;
   cropIds: CropId[];
   /** 진행이 막혀 요정의 도움이 필요한 상태인지 */
   isStuck: boolean;
   onBuySeed: (cropId: CropId, qty: number) => void;
   onPlant: (index: number, cropId: CropId) => void;
   onHarvest: (index: number) => void;
-  onPutOnDisplay: (cropId: CropId) => void;
+  onPutOnDisplay: (index: number, cropId: CropId) => void;
   onTakeFromDisplay: (index: number) => void;
   onReceiveGiftSeed: () => void;
 }

@@ -54,7 +54,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '토마토',
     growPhases: 1,
     seedPrice: 20,
-    mutationRate: 0.1,
+    mutationRate: 0.7,
     mutantName: '황금 토마토',
   },
   corn: {
@@ -62,7 +62,7 @@ export const CROPS: Record<CropId, Crop> = {
     name: '옥수수',
     growPhases: 3,
     seedPrice: 50,
-    mutationRate: 0.1,
+    mutationRate: 0.7,
     mutantName: '황금 옥수수',
   },
 };
@@ -381,6 +381,12 @@ export const INITIAL_GOLD = 100;
 
 /** 변이 작물을 진열칸 수 */
 export const DISPLAY_SLOTS = 6;
+
+/** 진열대. 칸 순서를 그대로 유지하며, 비어 있는 칸은 null이다 */
+export type Display = (CropId | null)[];
+
+export const createEmptyDisplay = (): Display =>
+  Array.from({ length: DISPLAY_SLOTS }, () => null);
 
 /** 진열품 1개당 모든 요리 판매가 상승률 */
 export const DISPLAY_BONUS_PER_ITEM = 0.05;

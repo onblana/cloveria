@@ -1,11 +1,13 @@
 import {
   createFriendship,
   createDailyRecord,
+  createEmptyDisplay,
   createEmptyPlots,
   INITIAL_SEEDS,
   type Friendship,
   type CropId,
   type CustomerId,
+  type Display,
   type DailyRecord,
   type Order,
   type Plot,
@@ -33,7 +35,7 @@ export interface SaveData {
   seeds: SeedStock;
   crops: CropStock;
   plots: (Plot | null)[];
-  display: CropId[];
+  display: Display;
   /** 오늘치 성과. 새로고침해도 하루 결과가 어긋나지 않도록 함께 저장한다 */
   daily: DailyRecord;
   /** 손님별 친밀도 */
@@ -93,12 +95,14 @@ const migrate = (data: LegacySaveData): PartialSaveData => ({
 
 /**
  * 빠진 칸을 채워 완전한 기록으로 만든다.
- * 밭은 저장된 길이가 아니라 지금 설정된 칸 수에 맞춰 다시 깔아, 칸 수가 바뀌어도 어긋나지 않게 한다.
+ * 밭과 진열대는 저장된 길이가 아니라 지금 설정된 칸 수에 맞춰 다시 깔아, 칸 수가 바뀌어도 어긋나지 않게 한다.
  */
 const normalize = (data: PartialSaveData): SaveData => ({
   ...data,
   phaseCount: data.phaseCount ?? data.tick ?? 0,
   plots: createEmptyPlots().map((_, index) => normalizePlot(data.plots?.[index])),
+  // 빈 칸 없이 앞에서부터 채워 저장하던 기록은 그대로 앞 칸에 들어간다
+  display: createEmptyDisplay().map((_, index) => data.display?.[index] ?? null),
   daily: data.daily ?? createDailyRecord(),
   friendship: { ...createFriendship(), ...data.friendship },
   orders: data.orders ?? [],

@@ -6,9 +6,10 @@ import { CropPickerModal } from '@/components/common/CropPickerModal';
 import {
   CROPS,
   CROP_EMOJI,
-  DISPLAY_SLOTS,
+  createEmptyDisplay,
   getDisplayBonusPercent,
   type CropId,
+  type Display,
   type Inventory,
 } from '@/lib/game/data';
 
@@ -23,19 +24,21 @@ interface UseDisplayOptions {
  * 진열 목록은 저장 대상이자 판매가 계산에 쓰여 화면 바깥에서도 읽어야 하므로 여기서 함께 돌려준다.
  */
 export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptions) {
-  const [display, setDisplay] = useState<CropId[]>([]);
+  const [display, setDisplay] = useState<Display>(createEmptyDisplay);
 
-  const putOnDisplay = (cropId: CropId) => {
-    if (display.length >= DISPLAY_SLOTS || inventory[cropId].mutant <= 0) return;
+  // 고른 칸에 그대로 올린다. 앞으로 당겨 채우지 않아 유저가 놓은 자리가 유지된다
+  const putOnDisplay = (index: number, cropId: CropId) => {
+    if (display[index] || inventory[cropId].mutant <= 0) return;
 
     setInventory((prev) => ({
       ...prev,
       [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
     }));
-    setDisplay((prev) => [...prev, cropId]);
+    setDisplay((prev) => prev.map((slot, i) => (i === index ? cropId : slot)));
     pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
+  // 내린 칸은 비워만 두고 뒤 칸을 당기지 않는다
   const takeFromDisplay = (index: number) => {
     const cropId = display[index];
     if (!cropId) return;
@@ -44,18 +47,21 @@ export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptio
       ...prev,
       [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant + 1 },
     }));
-    setDisplay((prev) => prev.filter((_, i) => i !== index));
+    setDisplay((prev) => prev.map((slot, i) => (i === index ? null : slot)));
     pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
   };
 
-  return { display, setDisplay, putOnDisplay, takeFromDisplay };
+  /** 판매가 보너스는 칸 위치가 아니라 올려둔 개수로만 정해진다 */
+  const displayCount = display.filter(Boolean).length;
+
+  return { display, setDisplay, displayCount, putOnDisplay, takeFromDisplay };
 }
 
 interface DisplayModalProps {
-  display: CropId[];
+  display: Display;
   inventory: Inventory;
   cropIds: CropId[];
-  onPutOnDisplay: (cropId: CropId) => void;
+  onPutOnDisplay: (index: number, cropId: CropId) => void;
   onTakeFromDisplay: (index: number) => void;
   onClose: () => void;
 }
@@ -72,20 +78,23 @@ export function DisplayModal({
   onTakeFromDisplay,
   onClose,
 }: DisplayModalProps) {
-  const [step, setStep] = useState<'shelf' | 'picker'>('shelf');
+  // 작물을 고르는 중인 진열 칸. null이면 진열대 화면을 보여준다
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
 
   // 올리고 나면 결과를 볼 수 있도록 진열대 화면으로 돌아간다
   const putOnDisplay = (cropId: CropId) => {
-    onPutOnDisplay(cropId);
-    setStep('shelf');
+    if (pickerSlot === null) return;
+
+    onPutOnDisplay(pickerSlot, cropId);
+    setPickerSlot(null);
   };
 
-  if (step === 'picker') {
+  if (pickerSlot !== null) {
     return (
       <CropPickerModal
-        title="진열할 작물 고르기"
+        title={`${pickerSlot + 1}번 칸에 올릴 작물 고르기`}
         description="특별한 작물만 진열할 수 있다"
-        onBack={() => setStep('shelf')}
+        onBack={() => setPickerSlot(null)}
         onClose={onClose}
       >
         {cropIds.map((cropId) => (
@@ -112,14 +121,12 @@ export function DisplayModal({
       onClose={onClose}
     >
       <div className="grid grid-cols-3 gap-2">
-        {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
-          const cropId = display[index];
-
+        {display.map((cropId, index) => {
           if (!cropId) {
             return (
               <button
                 key={index}
-                onClick={() => setStep('picker')}
+                onClick={() => setPickerSlot(index)}
                 className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-400"
               >
                 비어있는

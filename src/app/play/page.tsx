@@ -73,10 +73,18 @@ const createOrders = (): Order[] => {
 };
 const rollMutation = (rate: number) => Math.random() < rate;
 
+/** 저장을 미루는 시간 (ms). 연달아 바뀌어도 마지막 한 번만 쓴다 */
+const SAVE_DELAY_MS = 400;
+
 /** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
 const LOG_LINES = 3;
 const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
 
+/*
+ * TODO: 이 화면이 모든 상태를 들고 있어 어떤 값이 바뀌어도 하위 화면이 전부 다시 그려진다.
+ *       지금 규모에선 문제없지만, 밭 확장으로 칸이 크게 늘거나 캔버스 타일맵이 들어오면
+ *       React.memo와 useCallback으로 다시 그리는 범위를 좁힐 것
+ */
 export default function PlayPage() {
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
   const [screen, setScreen] = useState<'loading' | 'naming' | 'playing'>('loading');
@@ -174,22 +182,29 @@ export default function PlayPage() {
       .catch(() => setScreen('naming'));
   }, [pushLog]);
 
-  // 저장 대상이 바뀔 때마다 기록한다
+  /*
+   * 저장 대상이 바뀔 때마다 기록한다.
+   * 한 번의 행동에도 여러 상태가 함께 바뀌므로, 조금 미뤘다가 마지막 한 번만 쓴다.
+   */
   useEffect(() => {
     if (screen !== 'playing') return;
 
-    saveGame({
-      playerName,
-      gold,
-      phaseCount,
-      seeds,
-      crops: inventory,
-      plots,
-      display,
-      daily,
-      friendship,
-      orders,
-    }).catch(() => undefined);
+    const timer = setTimeout(() => {
+      saveGame({
+        playerName,
+        gold,
+        phaseCount,
+        seeds,
+        crops: inventory,
+        plots,
+        display,
+        daily,
+        friendship,
+        orders,
+      }).catch(() => undefined);
+    }, SAVE_DELAY_MS);
+
+    return () => clearTimeout(timer);
   }, [
     screen,
     playerName,

@@ -104,8 +104,16 @@ const normalize = (data: PartialSaveData): SaveData => ({
   orders: data.orders ?? [],
 });
 
+/**
+ * 열어 둔 연결. 저장이 잦아 요청마다 새로 열지 않고 하나를 재사용한다.
+ * 실패하거나 연결이 끊기면 비워서 다음 요청이 다시 열게 한다.
+ */
+let dbPromise: Promise<IDBDatabase> | null = null;
+
 function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     // DB가 없거나 버전이 올라갔을 때만 실행된다 (저장소를 만드는 유일한 지점)
@@ -116,9 +124,28 @@ function openDatabase(): Promise<IDBDatabase> {
       }
     };
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+
+      // 다른 탭이 버전을 올리려 하면 연결을 비켜 준다
+      db.onversionchange = () => {
+        db.close();
+        dbPromise = null;
+      };
+      db.onclose = () => {
+        dbPromise = null;
+      };
+
+      resolve(db);
+    };
+
+    request.onerror = () => {
+      dbPromise = null;
+      reject(request.error);
+    };
   });
+
+  return dbPromise;
 }
 
 /** IndexedDB 요청은 콜백 기반이라 Promise로 감싸서 쓴다 */
@@ -133,8 +160,10 @@ async function runOnStore<T>(
     const request = action(transaction.objectStore(STORE_NAME));
 
     request.onsuccess = () => resolve(request.result as T);
+    // 연결은 공유하므로 닫지 않는다. 트랜잭션이 끊기는 경우까지 잡아 대기 중인 약속을 남기지 않는다
     request.onerror = () => reject(request.error);
-    transaction.oncomplete = () => db.close();
+    transaction.onabort = () => reject(transaction.error);
+    transaction.onerror = () => reject(transaction.error);
   });
 }
 

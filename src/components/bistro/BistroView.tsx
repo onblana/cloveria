@@ -12,11 +12,11 @@ import {
 
 /** 기다리는 동안 0.5초마다 차례로 보여줄 문구 */
 const WAITING_LINES = [
-  '손님을 기다리는 중 🙂',
-  '손님을 기다리는 중 🤔',
-  '손님을 기다리는 중 😗',
-  '손님을 기다리는 중 😐',
-  '손님을 기다리는 중 🤤',
+  '손님을 기다리는 중! 🙂',
+  '손님을 기다리는 중? 🤔',
+  '손님을 기다리는 중- 😗',
+  '손님을 기다리는 중. 😐',
+  '손님을 기다리는 중? 🤤',
 ];
 
 /** 문구가 바뀌는 간격 (ms) */
@@ -104,13 +104,13 @@ export function BistroView({
 
   return (
     <>
-      <section className="rounded-lg bg-amber-50 p-4">
+      <section className="rounded-lg bg-yellow-50 p-4">
         <h2 className="text-sm font-semibold text-amber-600">
           <p className="text-xs mb-1">{customer.name} 방문</p>
           {greeting}
         </h2>
         <p className="mt-1 text-xs">
-          주문한 요리는 <strong>{recipe.name}</strong>!
+          주문한 요리: <strong>{recipe.name}</strong>
         </p>
         <p className="mt-1 text-sm text-green-700">
           요리 재료:{' '}
@@ -121,7 +121,7 @@ export function BistroView({
         </p>
       </section>
 
-      {/* 만들 수 없는 요리는 흐리게 두지 않고 아예 감춘다 */}
+      {/* 만들 수 없는 요리는 감춘다 */}
       {canCook || canCookSpecial ? (
         <section className="flex gap-2">
           {canCook && (

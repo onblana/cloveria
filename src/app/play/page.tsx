@@ -468,6 +468,8 @@ export default function PlayPage() {
 
       {dayPhase.kind === 'bistro' && (
         <BistroView
+          /* 손님이 바뀔 때마다 새로 붙어야 기다리는 연출이 다시 돈다 */
+          key={shownOrder?.customer ?? 'empty'}
           customer={shownOrder ? CUSTOMERS[shownOrder.customer] : null}
           greeting={
             shownOrder

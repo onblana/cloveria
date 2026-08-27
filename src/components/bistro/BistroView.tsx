@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import {
   CROPS,
   getDisplayBonusPercent,
@@ -7,6 +9,22 @@ import {
   type Customer,
   type Recipe,
 } from '@/lib/game/data';
+
+/** 기다리는 동안 0.5초마다 차례로 보여줄 문구 */
+const WAITING_LINES = [
+  '손님을 기다리는 중 🙂',
+  '손님을 기다리는 중 🤔',
+  '손님을 기다리는 중 😗',
+  '손님을 기다리는 중 😐',
+  '손님을 기다리는 중 🤤',
+];
+
+/** 문구가 바뀌는 간격 (ms) */
+const LINE_STEP_MS = 800;
+
+/** 손님 한 명이 들어오기까지 기다리는 시간의 최소·최대 (ms) */
+const WAIT_MIN_MS = 1000;
+const WAIT_MAX_MS = 4000;
 
 interface BistroViewProps {
   customer: Customer | null;
@@ -33,13 +51,45 @@ export function BistroView({
   canCookSpecial,
   onCook,
 }: BistroViewProps) {
-  // 대기열이 비면 더 받을 손님이 없다
+  // 장사를 열자마자 손님이 서 있으면 어색해 잠깐 비워 둔다
+  const [isWaiting, setIsWaiting] = useState(true);
+  const [lineIndex, setLineIndex] = useState(0);
+
+  // 이 화면은 손님이 바뀔 때마다 새로 붙으므로(key) 한 번만 걸면 된다
+  useEffect(() => {
+    const delay = WAIT_MIN_MS + Math.random() * (WAIT_MAX_MS - WAIT_MIN_MS);
+    const timer = setTimeout(() => setIsWaiting(false), delay);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isWaiting) return;
+
+    const interval = setInterval(
+      () => setLineIndex((index) => (index + 1) % WAITING_LINES.length),
+      LINE_STEP_MS,
+    );
+
+    return () => clearInterval(interval);
+  }, [isWaiting]);
+
+  // 대기열이 비면 더 받을 손님이 없다. 기다릴 이유도 없으니 먼저 판정한다
   if (!customer || !recipe) {
     return (
       <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
         모든 손님이 다녀갔다.
         <br />
         {phaseName} 장사를 마무리 해야겠다.
+      </p>
+    );
+  }
+
+  // 기다리는 동안에는 주문도 요리 버튼도 보여주지 않는다
+  if (isWaiting) {
+    return (
+      <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+        {WAITING_LINES[lineIndex]}
       </p>
     );
   }

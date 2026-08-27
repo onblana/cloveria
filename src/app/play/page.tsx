@@ -6,6 +6,7 @@ import { CoinIcon } from '@/components/icons/CoinIcon';
 import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
 import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
+import { FarewellModal } from '@/components/bistro/FarewellModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { HeaderMenu } from '@/components/common/HeaderMenu';
 import { PhaseTransition } from '@/components/common/PhaseTransition';
@@ -114,6 +115,8 @@ export default function PlayPage() {
   const [isDayEnding, setIsDayEnding] = useState(false);
   // 전환 연출이 끝나면 넘어갈 단계. null이면 연출이 돌고 있지 않다
   const [pendingPhase, setPendingPhase] = useState<number | null>(null);
+  // 요리를 못 받고 돌아가는 손님의 인사. null이면 창이 닫힌 상태다
+  const [farewell, setFarewell] = useState<{ customerName: string; comment: string } | null>(null);
 
   const pushLog = useCallback((message: string) => {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
@@ -145,6 +148,19 @@ export default function PlayPage() {
       return;
     }
 
+    // 재료가 모자라 손님을 그냥 보내야 하면 인사를 먼저 받는다
+    if (dayPhase.kind === 'bistro' && order && !canCook && !canCookSpecial) {
+      const customer = CUSTOMERS[order.customer];
+      setFarewell({ customerName: customer.name, comment: customer.missedComment });
+      return;
+    }
+
+    setPendingPhase(phaseCount + 1);
+  };
+
+  // 인사를 확인하고 나서야 장사가 마감된다
+  const closeFarewell = () => {
+    setFarewell(null);
     setPendingPhase(phaseCount + 1);
   };
 
@@ -518,6 +534,14 @@ export default function PlayPage() {
         <PhaseTransition
           onHalfway={applyPendingPhase}
           onFinish={() => setPendingPhase(null)}
+        />
+      )}
+
+      {farewell && (
+        <FarewellModal
+          customerName={farewell.customerName}
+          comment={farewell.comment}
+          onClose={closeFarewell}
         />
       )}
 

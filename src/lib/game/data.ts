@@ -193,6 +193,8 @@ export interface Customer {
   comments: [string, string, string];
   /** 특별 요리를 먹었을 때만 나오는 한마디. 평소보다 한 톤 높게 반응한다 */
   specialComment: string;
+  /** 요리를 받지 못하고 돌아갈 때 남기는 한마디 */
+  missedComment: string;
   /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
   postposition1: '와' | '과';
   postposition2: '는' | '은';
@@ -213,6 +215,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '오늘도 잘 먹었네. 수고했어.',
     ],
     specialComment: '허어, 오늘따라 요리가 더 맛있구먼!',
+    missedComment: '오늘은 재료가 다 떨어졌구먼. 어쩔 수 없지.',
     postposition1: '과',
     postposition2: '은',
   },
@@ -230,6 +233,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었습니다. 다음에 또 들를게요!',
     ],
     specialComment: '우와, 이거 뭔가 다른데요?!',
+    missedComment: '아쉽네요. 내일 배달길에 다시 들를게요!',
     postposition1: '와',
     postposition2: '는',
   },
@@ -247,6 +251,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었어요~ 오늘도 고마워요.',
     ],
     specialComment: '어머, 이거 뭐야? 너무 맛있다!',
+    missedComment: '에이, 아쉽다. 내일은 꼭 먹으러 올게.',
     postposition1: '와',
     postposition2: '는',
   },
@@ -264,6 +269,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었네. 자네 덕에 오래 살겠어.',
     ],
     specialComment: '허허, 이건 젊어지는 맛이구먼!',
+    missedComment: '허허, 헛걸음했구먼. 내일 또 오지 뭐.',
     postposition1: '와',
     postposition2: '는',
   },
@@ -281,6 +287,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었네. 다음 장에 또 들르지.',
     ],
     specialComment: '이 요리는 값을 못 매기겠군.',
+    missedComment: '오늘은 인연이 아니었군. 다음 장에 다시 오지.',
     postposition1: '과',
     postposition2: '은',
   },
@@ -298,6 +305,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '할아버지한테도 자랑할래요!',
     ],
     specialComment: '세상에서 제일 맛있어요!',
+    missedComment: '으앙, 배고픈데... 내일 또 올게요!',
     postposition1: '과',
     postposition2: '은',
   },
@@ -315,6 +323,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '... (꾸벅)',
     ],
     specialComment: '...! (눈이 커진다)',
+    missedComment: '... (조용히 일어나 문을 나선다)',
     postposition1: '과',
     postposition2: '은',
   },
@@ -333,6 +342,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '이런 건 자랑해야지. 온 동네에 말해야겠다.',
 
+    missedComment: '어머, 오늘은 안 되나 보네. 짬 내서 또 올게.',
     postposition1: '와',
     postposition2: '는',
   },
@@ -350,6 +360,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었어. 계산은 여기 두고 가네.',
     ],
     specialComment: '... 이건 인정할 수밖에 없군.',
+    missedComment: '뭐, 그럴 수도 있지. 다음에 오지.',
     postposition1: '과',
     postposition2: '은',
   },
@@ -367,6 +378,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '잘 먹었다! 다음엔 좋은 놈으로 가져오지!',
     ],
     specialComment: '내 생선 인생 걸고, 이건 진짜야!',
+    missedComment: '에이, 아쉽구만! 다음엔 재료 넉넉히 준비해둬!',
     postposition1: '과',
     postposition2: '은',
   },

@@ -52,12 +52,19 @@
   --foreground: #171717;
   /* 단계별 바탕색. 아래 phase-* 클래스가 이 값을 덮어쓴다 */
   --surface: var(--background);
+  /* 빈 밭의 흙 색. 밭 확장이 붙어도 같은 값을 쓴다 */
+  --soil: #e5d9c8;
+  --soil-edge: #d3c3ab;
+  --soil-text: #8a7457;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-soil: var(--soil);
+  --color-soil-edge: var(--soil-edge);
+  --color-soil-text: var(--soil-text);
   /* 마루부리를 기본 폰트로 쓰고, 내려받기 전까지는 기기 기본 폰트로 보여준다 */
   --font-sans:
     "MaruBuri", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",

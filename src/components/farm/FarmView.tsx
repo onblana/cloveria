@@ -86,18 +86,18 @@ export function FarmView({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex gap-2 my-4">
         <button
           onClick={openShop}
-          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm"
+          className="h-11 flex-1 rounded-lg border border-lime-400 bg-lime-200 px-3 text-sm"
         >
-          🌱 씨앗 상점
+          씨앗 상점
         </button>
         <button
           onClick={() => setIsDisplayOpen(true)}
-          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm"
+          className="h-11 flex-1 rounded-lg border border-amber-300 bg-amber-200 px-3 text-sm"
         >
-          ✨ 특별 작물 진열대
+          특별 작물 진열대
         </button>
       </div>
 
@@ -111,7 +111,7 @@ export function FarmView({
                 <button
                   key={index}
                   onClick={() => setPlantTarget(index)}
-                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs font-light text-neutral-400"
+                  className="h-20 rounded-lg border border-soil-edge bg-soil text-xs text-soil-text"
                 >
                   빈 밭
                   <br />

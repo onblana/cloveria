@@ -466,6 +466,20 @@ export default function PlayPage() {
         />
       )}
 
+      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
+        <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
+        {CROP_IDS.map((cropId) => (
+          <div key={cropId} className="flex flex-wrap items-center gap-4">
+            <span>
+              {CROPS[cropId].name} {inventory[cropId].normal}개
+            </span>
+            <span className="text-amber-700">
+              ✨ {CROPS[cropId].specialName} {inventory[cropId].special}개
+            </span>
+          </div>
+        ))}
+      </section>
+
       {dayPhase.kind === 'bistro' && (
         <BistroView
           /* 손님이 바뀔 때마다 새로 붙어야 기다리는 연출이 다시 돈다 */
@@ -485,20 +499,6 @@ export default function PlayPage() {
           onCook={cook}
         />
       )}
-
-      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
-        <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
-        {CROP_IDS.map((cropId) => (
-          <div key={cropId} className="flex flex-wrap items-center gap-4">
-            <span>
-              {CROPS[cropId].name} {inventory[cropId].normal}개
-            </span>
-            <span className="text-amber-700">
-              ✨ {CROPS[cropId].specialName} {inventory[cropId].special}개
-            </span>
-          </div>
-        ))}
-      </section>
 
       {/*
         내용이 짧으면 mt-auto로 화면 아래에 붙고, 길면 sticky로 아래에 떠 있는다.

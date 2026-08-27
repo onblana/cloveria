@@ -478,6 +478,7 @@ export default function PlayPage() {
           }
           phaseName={dayPhase.name}
           recipe={shownRecipe}
+          isTransitioning={pendingPhase !== null}
           displayCount={displayCount}
           canCook={canCook}
           canCookSpecial={canCookSpecial}

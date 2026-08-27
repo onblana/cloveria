@@ -154,14 +154,14 @@ button {
 .clock-cover {
   -webkit-mask-image: conic-gradient(#000 var(--wipe-angle), transparent 0);
   mask-image: conic-gradient(#000 var(--wipe-angle), transparent 0);
-  animation: wipe-turn 1000ms linear forwards;
+  animation: wipe-turn 500ms linear forwards;
 }
 
 /* 같은 방향으로 한 바퀴 더 돌며 덮개가 걷힌다 */
 .clock-reveal {
   -webkit-mask-image: conic-gradient(transparent var(--wipe-angle), #000 0);
   mask-image: conic-gradient(transparent var(--wipe-angle), #000 0);
-  animation: wipe-turn 1000ms linear forwards;
+  animation: wipe-turn 500ms linear forwards;
 }
 
 /* 움직임을 줄여달라고 설정한 기기에서는 회전 없이 지나간다 */

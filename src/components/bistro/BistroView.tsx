@@ -33,6 +33,8 @@ interface BistroViewProps {
   /** 지금 단계 이름(점심·저녁). 손님이 다 다녀갔을 때 안내에 쓴다 */
   phaseName: string;
   recipe: Recipe | null;
+  /** 화면전환 연출이 도는 중인지. 덮개가 걷힌 뒤에 기다리는 연출을 시작한다 */
+  isTransitioning: boolean;
   /** 진열대에 올라간 특별 작물 수. 판매가 보너스 계산에 쓰인다 */
   displayCount: number;
   canCook: boolean;
@@ -46,6 +48,7 @@ export function BistroView({
   greeting,
   phaseName,
   recipe,
+  isTransitioning,
   displayCount,
   canCook,
   canCookSpecial,
@@ -55,16 +58,21 @@ export function BistroView({
   const [isWaiting, setIsWaiting] = useState(true);
   const [lineIndex, setLineIndex] = useState(0);
 
-  // 이 화면은 손님이 바뀔 때마다 새로 붙으므로(key) 한 번만 걸면 된다
+  /*
+   * 손님이 바뀔 때마다 이 화면이 새로 붙으므로(key) 시간 재기는 한 번이면 된다.
+   * 다만 장사를 여는 순간에는 아직 화면전환 덮개가 남아 있어, 그게 걷힌 뒤부터 센다.
+   */
   useEffect(() => {
+    if (isTransitioning) return;
+
     const delay = WAIT_MIN_MS + Math.random() * (WAIT_MAX_MS - WAIT_MIN_MS);
     const timer = setTimeout(() => setIsWaiting(false), delay);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isTransitioning]);
 
   useEffect(() => {
-    if (!isWaiting) return;
+    if (!isWaiting || isTransitioning) return;
 
     const interval = setInterval(
       () => setLineIndex((index) => (index + 1) % WAITING_LINES.length),
@@ -72,7 +80,7 @@ export function BistroView({
     );
 
     return () => clearInterval(interval);
-  }, [isWaiting]);
+  }, [isWaiting, isTransitioning]);
 
   // 대기열이 비면 더 받을 손님이 없다. 기다릴 이유도 없으니 먼저 판정한다
   if (!customer || !recipe) {

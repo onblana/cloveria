@@ -488,12 +488,18 @@ export default function PlayPage() {
         ))}
       </section>
 
-      <button
-        onClick={advancePhase}
-        className="min-h-12 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
-      >
-        {advanceLabel}
-      </button>
+      {/*
+        내용이 짧으면 mt-auto로 화면 아래에 붙고, 길면 sticky로 아래에 떠 있는다.
+        좌우로 음수 여백을 줘 배경이 화면 끝까지 덮이게 하고, 그만큼 안쪽 여백으로 되돌린다.
+      */}
+      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto bg-background px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
+        <button
+          onClick={advancePhase}
+          className="min-h-12 w-full rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
+        >
+          {advanceLabel}
+        </button>
+      </div>
 
       {cookResult && <CookingModal result={cookResult} onClear={clearDishes} />}
 

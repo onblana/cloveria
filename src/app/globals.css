@@ -118,3 +118,12 @@ button {
   height: 80vh;
   height: 80dvh;
 }
+
+/*
+ * 화면 맨 아래에 붙어 있는 버튼 줄.
+ * 홈 인디케이터가 있는 기기에서 버튼이 가려지지 않도록 그 높이만큼 아래 여백을 더한다.
+ * 노치가 없는 기기에서는 env() 값이 0이라 기본 여백만 남는다.
+ */
+.bottom-bar {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}

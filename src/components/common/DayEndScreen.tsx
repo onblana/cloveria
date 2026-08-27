@@ -82,7 +82,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
   const isNightColor = stage === 'night' || stage === 'result';
   // 덮개가 나타나고 사라지는 속도 (위 상수와 같은 값). 하얘질 때만 느리다
-  const fadeDuration = stage === 'dawn' ? 'duration-[2000ms]' : 'duration-1000';
+  const fadeDuration = stage === 'dawn' ? 'duration-[1000ms]' : 'duration-1000';
   const isCovering = isMounted && stage !== 'fadeOut';
 
   return (
@@ -118,20 +118,25 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
               <p className="text-neutral-500">오늘은 거둔 것이 없다.</p>
             ) : (
               <ul className="space-y-1">
+                {/* 둘 다 거뒀으면 한 행을 반씩 나눠 쓰고, 하나뿐이면 flex-1이 전체를 채운다 */}
                 {harvested.map(({ cropId, normal = 0, special = 0 }) => (
-                  <li key={cropId} className="flex items-center justify-between">
-                    <span>
-                      {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-                    </span>
-                    <span className="tabular-nums text-neutral-300">
-                      {normal > 0 && `${normal}개`}
-                      {normal > 0 && special > 0 && ' · '}
-                      {special > 0 && (
-                        <span className="text-amber-300">
-                          ✨ {CROPS[cropId].specialName} {special}개
+                  <li key={cropId} className="flex items-center gap-6">
+                    {normal > 0 && (
+                      <span className="flex flex-1 items-center justify-between gap-2">
+                        <span>
+                          {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                         </span>
-                      )}
-                    </span>
+                        <span className="tabular-nums text-neutral-300">{normal}개</span>
+                      </span>
+                    )}
+                    {special > 0 && (
+                      <span className="flex flex-1 items-center justify-between gap-2">
+                        <span className="text-amber-300">
+                          ✨{CROP_EMOJI[cropId]} {CROPS[cropId].specialName}
+                        </span>
+                        <span className="tabular-nums text-amber-300">{special}개</span>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

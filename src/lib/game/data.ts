@@ -291,8 +291,8 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     comments: [
       '... 맛있어요. (작게)',
-      '... (그릇을 조용히 비운다)',
-      '... 또 올게요.',
+      '... (조용히 가게를 떠난다)',
+      '... (꾸벅)',
     ],
     postposition1: '과',
     postposition2: '은',

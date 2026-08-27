@@ -115,8 +115,8 @@ button {
  * 앞줄을 못 읽는 브라우저는 선언을 버리고 vh를 그대로 쓴다.
  */
 .modal-tall {
-  height: 80vh;
-  height: 80dvh;
+  height: 50vh;
+  height: 50dvh;
 }
 
 /*

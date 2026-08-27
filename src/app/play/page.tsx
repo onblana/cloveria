@@ -48,8 +48,10 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 
 const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
-const pickComment = (customer: Customer) =>
-  customer.comments[Math.floor(Math.random() * customer.comments.length)];
+const pickComment = (customer: Customer, useSpecial: boolean) =>
+  useSpecial
+    ? customer.specialComment
+    : customer.comments[Math.floor(Math.random() * customer.comments.length)];
 const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
 
 /**
@@ -353,7 +355,7 @@ export default function PlayPage() {
       basePrice,
       displayBonus,
       price,
-      comment: pickComment(customer),
+      comment: pickComment(customer, useSpecial),
     });
     pushLog(
       useSpecial

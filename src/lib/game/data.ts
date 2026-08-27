@@ -179,6 +179,8 @@ export interface Customer {
   greetings: [string, string, string];
   /** 요리를 다 먹고 남기는 한마디. 나이와 말투가 제각각이라 손님마다 따로 둔다 */
   comments: [string, string, string];
+  /** 특별 요리를 먹었을 때만 나오는 한마디. 평소보다 한 톤 높게 반응한다 */
+  specialComment: string;
   /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
   postposition1: '와' | '과';
   postposition2: '는' | '은';
@@ -198,6 +200,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '이 맛이면 마을 자랑거리지.',
       '오늘도 잘 먹었네. 수고했어.',
     ],
+    specialComment: '허어, 오늘따라 요리가 더 맛있구먼!',
     postposition1: '과',
     postposition2: '은',
   },
@@ -214,6 +217,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '점심시간이 기다려지는 이유가 생겼네요.',
       '잘 먹었습니다. 다음에 또 들를게요!',
     ],
+    specialComment: '우와, 이거 뭔가 다른데요?!',
     postposition1: '와',
     postposition2: '는',
   },
@@ -230,6 +234,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '그릇이 예뻐서 그런가, 더 맛있는 것 같아.',
       '잘 먹었어요~ 오늘도 고마워요.',
     ],
+    specialComment: '어머, 이거 뭐야? 너무 맛있다!',
     postposition1: '와',
     postposition2: '는',
   },
@@ -246,6 +251,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '허리는 아파도 입은 즐겁구먼.',
       '잘 먹었네. 자네 덕에 오래 살겠어.',
     ],
+    specialComment: '허허, 이건 젊어지는 맛이구먼!',
     postposition1: '와',
     postposition2: '는',
   },
@@ -262,6 +268,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '여러 마을 다녀봤지만 이 정도는 드물어.',
       '잘 먹었네. 다음 장에 또 들르지.',
     ],
+    specialComment: '이 요리는 값을 못 매기겠군.',
     postposition1: '과',
     postposition2: '은',
   },
@@ -278,6 +285,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '이거 어떻게 만드는 거예요?',
       '할아버지한테도 자랑할래요!',
     ],
+    specialComment: '세상에서 제일 맛있어요!',
     postposition1: '과',
     postposition2: '은',
   },
@@ -294,6 +302,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '... (조용히 가게를 떠난다)',
       '... (꾸벅)',
     ],
+    specialComment: '...! (눈이 커진다)',
     postposition1: '과',
     postposition2: '은',
   },
@@ -310,6 +319,8 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '이 맛에 짬 내서 오는 거지.',
       '잘 먹었어. 다음엔 좀 더 앉았다 갈게.',
     ],
+    specialComment: '이런 건 자랑해야지. 온 동네에 말해야겠다.',
+
     postposition1: '와',
     postposition2: '는',
   },
@@ -326,6 +337,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '... 맛있네. 이런 말 잘 안 하는데.',
       '잘 먹었어. 계산은 여기 두고 가네.',
     ],
+    specialComment: '... 이건 인정할 수밖에 없군.',
     postposition1: '과',
     postposition2: '은',
   },
@@ -342,6 +354,7 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
       '내 생선도 이렇게 요리해줘!',
       '잘 먹었다! 다음엔 좋은 놈으로 가져오지!',
     ],
+    specialComment: '내 생선 인생 걸고, 이건 진짜야!',
     postposition1: '과',
     postposition2: '은',
   },

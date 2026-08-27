@@ -14,16 +14,9 @@ interface DayEndScreenProps {
   onFinish: () => void;
 }
 
-/**
- * 연출 길이 (ms). 아래 duration-* 클래스와 반드시 같은 값으로 맞춰야 한다.
- * 어긋나면 화면이 다 어두워진 뒤 남은 시간만큼 멈춰 있는 것처럼 보인다.
- */
-const DARK_MS = 1000;
-const DAWN_MS = 2000;
 /** 흰 화면이 된 뒤 아침 문구를 띄워 두는 시간 */
-const MORNING_MS = 1000;
-/** 덮개가 걷히며 아침 화면이 드러나는 시간. 어두워질 때와 같은 속도로 맞춘다 */
-const FADE_OUT_MS = DARK_MS;
+const MORNING_MS = 1500;
+const FADE_MS = 1000;
 
 /**
  * 하루가 끝날 때 화면을 덮는 연출.
@@ -41,8 +34,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setIsMounted(true));
-    // 다 어두워지는 순간 결과가 바로 뜨도록 어두워지는 시간과 같은 값을 쓴다
-    const timer = setTimeout(() => setStage('result'), DARK_MS);
+    const timer = setTimeout(() => setStage('result'), FADE_MS);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -53,7 +45,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
   // 밝아짐 → 아침 문구 → 종료. 중간에 화면이 걷히면 남은 타이머를 정리한다
   useEffect(() => {
     if (stage === 'dawn') {
-      const timer = setTimeout(() => setStage('morning'), DAWN_MS);
+      const timer = setTimeout(() => setStage('morning'), FADE_MS);
       return () => clearTimeout(timer);
     }
 
@@ -63,7 +55,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
     }
 
     if (stage === 'fadeOut') {
-      const timer = setTimeout(onFinish, FADE_OUT_MS);
+      const timer = setTimeout(onFinish, FADE_MS);
       return () => clearTimeout(timer);
     }
   }, [stage, onFinish]);
@@ -81,8 +73,6 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
     .filter((item) => (item.normal ?? 0) + (item.special ?? 0) > 0);
 
   const isNightColor = stage === 'night' || stage === 'result';
-  // 덮개가 나타나고 사라지는 속도 (위 상수와 같은 값). 하얘질 때만 느리다
-  const fadeDuration = stage === 'dawn' ? 'duration-[1000ms]' : 'duration-1000';
   const isCovering = isMounted && stage !== 'fadeOut';
 
   return (
@@ -92,7 +82,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
         어두워질 때만 서서히 나타나고, 그 뒤로는 검정에서 흰색으로 색만 바뀐다.
       */}
       <div
-        className={`absolute inset-0 transition ${fadeDuration} ${
+        className={`absolute inset-0 transition duration-1000 ${
           isNightColor ? 'bg-neutral-900' : 'bg-white'
         } ${isCovering ? 'opacity-100' : 'opacity-0'}`}
       />
@@ -103,19 +93,19 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
           <dl className="space-y-2 border-y border-neutral-700 py-4 text-sm">
             <div className="flex items-center justify-between">
-              <dt className="text-neutral-400">장사로 번 돈</dt>
+              <dt className="text-neutral-300">장사로 번 돈</dt>
               <dd className="tabular-nums text-amber-300">+{shown.record.earned}골드</dd>
             </div>
             <div className="flex items-center justify-between">
-              <dt className="text-neutral-400">오늘 쓴 돈</dt>
-              <dd className="tabular-nums text-neutral-300">−{shown.record.spent}골드</dd>
+              <dt className="text-neutral-300">오늘 쓴 돈</dt>
+              <dd className="tabular-nums text-neutral-200">−{shown.record.spent}골드</dd>
             </div>
           </dl>
 
           <div className="space-y-2 text-sm">
-            <h3 className="text-neutral-400">수확한 작물</h3>
+            <h3 className="text-neutral-300">수확한 작물</h3>
             {harvested.length === 0 ? (
-              <p className="text-neutral-500">오늘은 거둔 것이 없다.</p>
+              <p className="text-neutral-400">오늘은 거둔 것이 없다.</p>
             ) : (
               <ul className="space-y-1">
                 {/* 둘 다 거뒀으면 한 행을 반씩 나눠 쓰고, 하나뿐이면 flex-1이 전체를 채운다 */}
@@ -126,7 +116,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
                         <span>
                           {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                         </span>
-                        <span className="tabular-nums text-neutral-300">{normal}개</span>
+                        <span className="tabular-nums text-neutral-200">{normal}개</span>
                       </span>
                     )}
                     {special > 0 && (
@@ -155,7 +145,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
       {(stage === 'morning' || stage === 'fadeOut') && (
         // 흰 덮개 위에 올라가는 문구. 덮개가 걷힐 때 같이 사라진다
         <p
-          className={`relative text-lg font-semibold text-neutral-900 transition duration-1000 ${
+          className={`relative text-lg font-semibold text-neutral-900 transition duration-1500 ${
             stage === 'morning' ? 'opacity-100' : 'opacity-0'
           }`}
         >

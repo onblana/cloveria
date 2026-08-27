@@ -89,9 +89,10 @@ export interface DailyRecord {
 
 export const createDailyRecord = (): DailyRecord => ({ earned: 0, spent: 0, harvest: {} });
 
-/** 밭 한 칸의 상태. 심은 시점을 들고 있어야 지금 단계 수와 비교해 성장도를 계산할 수 있다 */
+/** 밭 한 칸의 상태. 성장 기준점을 들고 있어야 지금 단계 수와 비교해 성장도를 계산할 수 있다 */
 export interface Plot {
   cropId: CropId;
+  /** 성장을 재는 기준점. 심은 시점에서 시작하되, 밤을 지날 때마다 앞으로 당겨진다 */
   plantedPhase: number;
   /**
    * 특별 작물 여부. 다 자란 순간 한 번 정해져 저장되므로,
@@ -106,6 +107,19 @@ export const createEmptyPlots = (): (Plot | null)[] =>
 /** 다 자라 수확할 수 있는 칸인지 */
 export const isPlotReady = (plot: Plot, phaseCount: number) =>
   phaseCount - plot.plantedPhase >= CROPS[plot.cropId].growPhases;
+
+/** 밤 하나를 지날 때 덤으로 자라는 단계 수 */
+export const NIGHT_EXTRA_GROWTH = 1;
+
+/**
+ * 밤새 작물을 덤으로 자라게 한다.
+ * 단계 수(phaseCount)는 하루 다섯 단계를 도는 값이라 건드릴 수 없어,
+ * 대신 성장 기준점을 앞으로 당겨 그만큼 더 자란 것으로 만든다.
+ */
+export const growOvernight = (plots: (Plot | null)[]): (Plot | null)[] =>
+  plots.map((plot) =>
+    plot ? { ...plot, plantedPhase: plot.plantedPhase - NIGHT_EXTRA_GROWTH } : plot,
+  );
 
 /** 특별 작물 판정. 화면과 무관한 규칙이라 여기에 둔다 */
 export const rollSpecial = (rate: number) => Math.random() < rate;

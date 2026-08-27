@@ -35,6 +35,7 @@ import {
   getFriendshipMessage,
   getGreeting,
   getOrderableRecipeIds,
+  growOvernight,
   isPlotReady,
   revealGrownPlots,
   type CropId,
@@ -170,7 +171,8 @@ export default function PlayPage() {
     setOrders([]);
     setDaily(createDailyRecord());
     pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
-    setPlots(revealGrownPlots(plots, next));
+    // 밤을 지나며 한 단계 더 자란 뒤에 특별 여부를 판정한다
+    setPlots(revealGrownPlots(growOvernight(plots), next));
   };
 
   // 기록을 여는 화면이다. 읽을 기록이 없으면 이름부터 받도록 시작 화면으로 돌려보낸다

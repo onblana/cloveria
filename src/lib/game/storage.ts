@@ -47,7 +47,7 @@ export interface SaveData {
   friendship: Friendship;
   /** 이번 장사에 남은 손님들. 장사 도중에 이어 시작해도 순서가 유지된다 */
   orders: Order[];
-  /** 씨앗을 한 번이라도 산 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다 */
+  /** 한 번이라도 수확해 본 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다 */
   unlockedCrops: CropId[];
   /** 도입부 이야기를 이미 보여줬는지. 시작 화면이 만든 기록은 false로 시작한다 */
   introShown: boolean;

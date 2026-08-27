@@ -99,7 +99,7 @@ export default function PlayPage() {
   const [plots, setPlots] = useState(createEmptyPlots);
   // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
   const [orders, setOrders] = useState<Order[]>([]);
-  // 씨앗을 한 번이라도 산 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다
+  // 한 번이라도 수확해 본 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다
   const [unlockedCrops, setUnlockedCrops] = useState(createUnlockedCrops);
   const [log, setLog] = useState<string[]>([]);
   // 손님별 친밀도. 요리를 낼 때마다 오른다
@@ -265,6 +265,9 @@ export default function PlayPage() {
 
     // 특별 여부는 다 자란 순간 이미 정해져 저장돼 있다
     const isSpecial = plot.isSpecial ?? false;
+
+    // 처음 거둔 작물은 그때부터 그 작물이 든 요리가 주문에 나온다
+    setUnlockedCrops((prev) => (prev.includes(plot.cropId) ? prev : [...prev, plot.cropId]));
     setInventory((prev) => ({
       ...prev,
       [plot.cropId]: {
@@ -384,7 +387,6 @@ export default function PlayPage() {
 
     setGold((prev) => prev - total);
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
-    setUnlockedCrops((prev) => (prev.includes(cropId) ? prev : [...prev, cropId]));
     setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
     pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };

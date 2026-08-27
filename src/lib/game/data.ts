@@ -440,12 +440,12 @@ export const INITIAL_SEEDS = 6;
 /** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
 export const STARTER_CROP: CropId = 'tomato';
 
-/** 씨앗을 한 번이라도 산 작물 목록. 시작할 때는 요정이 건넨 작물뿐이다 */
+/** 한 번이라도 수확해 본 작물 목록. 시작할 때는 요정이 건넨 작물뿐이다 */
 export const createUnlockedCrops = (): CropId[] => [STARTER_CROP];
 
 /**
  * 지금 주문으로 나올 수 있는 요리.
- * 씨앗을 사 본 적 없는 작물이 들어간 요리는 만들 길이 없어 주문에서 뺀다.
+ * 아직 거둬 본 적 없는 작물이 들어간 요리는 만들 길이 없어 주문에서 뺀다.
  */
 export const getOrderableRecipeIds = (unlockedCrops: CropId[]): RecipeId[] =>
   RECIPE_IDS.filter((recipeId) =>

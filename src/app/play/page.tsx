@@ -28,11 +28,13 @@ import {
   createEmptyStock,
   createInventory,
   createStarterSeeds,
+  createUnlockedCrops,
   createFriendship,
   getDayNumber,
   getDayPhase,
   getFriendshipMessage,
   getGreeting,
+  getOrderableRecipeIds,
   isPlotReady,
   revealGrownPlots,
   type CropId,
@@ -46,26 +48,26 @@ import { useRouter } from 'next/navigation';
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
-const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
 
 const pickComment = (customer: Customer, useSpecial: boolean) =>
   useSpecial
     ? customer.specialComment
     : customer.comments[Math.floor(Math.random() * customer.comments.length)];
-const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
+const pickRecipe = (recipeIds: RecipeId[]) =>
+  recipeIds[Math.floor(Math.random() * recipeIds.length)];
 
 /**
  * 한 번의 장사 동안 찾아올 손님들. 손님 순서를 섞어 한 명당 한 번씩만 오게 한다.
  * 장사를 열 때마다 새로 만들어서, 재료가 없어 마감해도 다음 장사엔 다른 손님이 온다.
  */
-const createOrders = (): Order[] => {
+const createOrders = (recipeIds: RecipeId[]): Order[] => {
   const shuffled = [...CUSTOMER_IDS];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  return shuffled.map((customer) => ({ customer, recipeId: pickRecipe() }));
+  return shuffled.map((customer) => ({ customer, recipeId: pickRecipe(recipeIds) }));
 };
 
 /** 저장을 미루는 시간 (ms). 연달아 바뀌어도 마지막 한 번만 쓴다 */
@@ -97,6 +99,8 @@ export default function PlayPage() {
   const [plots, setPlots] = useState(createEmptyPlots);
   // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
   const [orders, setOrders] = useState<Order[]>([]);
+  // 씨앗을 한 번이라도 산 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다
+  const [unlockedCrops, setUnlockedCrops] = useState(createUnlockedCrops);
   const [log, setLog] = useState<string[]>([]);
   // 손님별 친밀도. 요리를 낼 때마다 오른다
   const [friendship, setFriendship] = useState(createFriendship);
@@ -163,7 +167,7 @@ export default function PlayPage() {
 
     // 장사를 열 때마다 손님 대기열을 새로 짠다
     if (getDayPhase(pendingPhase).kind === 'bistro') {
-      setOrders(createOrders());
+      setOrders(createOrders(getOrderableRecipeIds(unlockedCrops)));
     }
     setPhaseCount(pendingPhase);
     revealGrown(plots, pendingPhase);
@@ -204,6 +208,7 @@ export default function PlayPage() {
         setDaily(saved.daily);
         setFriendship({ ...createFriendship(), ...saved.friendship });
         setOrders(saved.orders);
+        setUnlockedCrops(saved.unlockedCrops);
         setScreen('playing');
 
         // 시작 화면이 막 만든 기록이면 도입부를, 이어서 하는 기록이면 인사를 띄운다
@@ -237,6 +242,7 @@ export default function PlayPage() {
         daily,
         friendship,
         orders,
+        unlockedCrops,
         introShown: true,
       }).catch(() => undefined);
     }, SAVE_DELAY_MS);
@@ -254,6 +260,7 @@ export default function PlayPage() {
     daily,
     friendship,
     orders,
+    unlockedCrops,
   ]);
 
   const plant = (index: number, cropId: CropId) => {
@@ -388,6 +395,7 @@ export default function PlayPage() {
 
     setGold((prev) => prev - total);
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
+    setUnlockedCrops((prev) => (prev.includes(cropId) ? prev : [...prev, cropId]));
     setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
     pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };

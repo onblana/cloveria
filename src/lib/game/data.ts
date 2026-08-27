@@ -160,6 +160,8 @@ export const RECIPES: Record<RecipeId, Recipe> = {
   },
 };
 
+export const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
+
 export type CustomerId =
   | 'headman'
   | 'postman'
@@ -423,10 +425,24 @@ export const getFriendshipMessage = (
 //       - 토마토 파스타 전문 요리사: 토마토 파스타를 20번 요리했다
 //       - 토마토 키우기의 달인: 토마토 50개를 수확했다
 
-export const INITIAL_SEEDS = 4;
+export const INITIAL_SEEDS = 6;
 
 /** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
 export const STARTER_CROP: CropId = 'tomato';
+
+/** 씨앗을 한 번이라도 산 작물 목록. 시작할 때는 요정이 건넨 작물뿐이다 */
+export const createUnlockedCrops = (): CropId[] => [STARTER_CROP];
+
+/**
+ * 지금 주문으로 나올 수 있는 요리.
+ * 씨앗을 사 본 적 없는 작물이 들어간 요리는 만들 길이 없어 주문에서 뺀다.
+ */
+export const getOrderableRecipeIds = (unlockedCrops: CropId[]): RecipeId[] =>
+  RECIPE_IDS.filter((recipeId) =>
+    (Object.keys(RECIPES[recipeId].ingredients) as CropId[]).every((cropId) =>
+      unlockedCrops.includes(cropId),
+    ),
+  );
 
 /** 작물별 보유량 바탕. 기록에 없는 작물은 0개로 남는다 */
 export const createEmptyStock = (): Record<CropId, number> =>

@@ -2,9 +2,11 @@ import {
   createDailyRecord,
   createEmptyDisplay,
   createEmptyPlots,
+  CROP_IDS,
   createFriendship,
   createInventory,
   createStarterSeeds,
+  createUnlockedCrops,
   INITIAL_GOLD,
   INITIAL_SEEDS,
   type Friendship,
@@ -45,6 +47,8 @@ export interface SaveData {
   friendship: Friendship;
   /** 이번 장사에 남은 손님들. 장사 도중에 이어 시작해도 순서가 유지된다 */
   orders: Order[];
+  /** 씨앗을 한 번이라도 산 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다 */
+  unlockedCrops: CropId[];
   /** 도입부 이야기를 이미 보여줬는지. 시작 화면이 만든 기록은 false로 시작한다 */
   introShown: boolean;
 }
@@ -61,15 +65,18 @@ export const createNewSave = (playerName: string): SaveData => ({
   daily: createDailyRecord(),
   friendship: createFriendship(),
   orders: [],
+  unlockedCrops: createUnlockedCrops(),
   introShown: false,
 });
 
 /** 날짜·밭·하루 집계·친밀도·대기열을 저장하기 전에 만들어진 기록에는 이 칸들이 없다 */
 type PartialSaveData = Omit<
   SaveData,
-  'phaseCount' | 'plots' | 'daily' | 'friendship' | 'orders' | 'introShown'
+  'phaseCount' | 'plots' | 'daily' | 'friendship' | 'orders' | 'unlockedCrops' | 'introShown'
 > &
-  Partial<Pick<SaveData, 'phaseCount' | 'daily' | 'orders' | 'introShown'>> & {
+  Partial<
+    Pick<SaveData, 'phaseCount' | 'daily' | 'orders' | 'unlockedCrops' | 'introShown'>
+  > & {
     friendship?: FriendshipStock;
     plots?: (Plot | LegacyPlot | null)[];
     /** phaseCount로 이름을 바꾸기 전에 저장된 값 */
@@ -126,6 +133,8 @@ const normalize = (data: PartialSaveData): SaveData => ({
   daily: data.daily ?? createDailyRecord(),
   friendship: { ...createFriendship(), ...data.friendship },
   orders: data.orders ?? [],
+  // 이 칸이 없던 시절의 기록은 모든 작물이 이미 열려 있던 기록이다
+  unlockedCrops: data.unlockedCrops ?? CROP_IDS,
   // 이 칸이 없던 시절의 기록은 이미 도입부를 지난 기록이다
   introShown: data.introShown ?? true,
 });

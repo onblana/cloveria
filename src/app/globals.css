@@ -129,16 +129,26 @@ button {
 }
 
 /*
- * 단계가 넘어갈 때 시계바늘처럼 화면을 덮었다 걷는 연출.
+ * 단계가 넘어갈 때 쓰는 화면전환.
+ * 덮개가 짧게 나타나 화면을 가린 뒤, 시계바늘처럼 한 바퀴 돌며 걷힌다.
  *
  * CSS 변수는 기본적으로 글자 뭉치라 0deg에서 360deg로 부드럽게 이어지지 않는다.
  * @property로 각도 타입임을 알려줘야 브라우저가 중간값을 계산할 수 있다.
- * 이 문법을 모르는 브라우저에서는 각도가 움직이지 않아 덮개가 툭 나타났다 사라진다.
+ * 이 문법을 모르는 브라우저에서는 각도가 움직이지 않아 덮개가 툭 사라진다.
  */
 @property --wipe-angle {
   syntax: "<angle>";
   inherits: false;
   initial-value: 0deg;
+}
+
+@keyframes wipe-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes wipe-turn {
@@ -150,14 +160,12 @@ button {
   }
 }
 
-/* 12시 방향에서 시계 방향으로 덮개가 차오른다 */
+/* 화면을 가리는 구간. 짧게 스며들어 단계가 바뀌는 순간을 감춘다 */
 .clock-cover {
-  -webkit-mask-image: conic-gradient(#000 var(--wipe-angle), transparent 0);
-  mask-image: conic-gradient(#000 var(--wipe-angle), transparent 0);
-  animation: wipe-turn 500ms linear forwards;
+  animation: wipe-fade-in 100ms linear forwards;
 }
 
-/* 같은 방향으로 한 바퀴 더 돌며 덮개가 걷힌다 */
+/* 12시 방향에서 시계 방향으로 한 바퀴 돌며 덮개가 걷힌다 */
 .clock-reveal {
   -webkit-mask-image: conic-gradient(transparent var(--wipe-angle), #000 0);
   mask-image: conic-gradient(transparent var(--wipe-angle), #000 0);

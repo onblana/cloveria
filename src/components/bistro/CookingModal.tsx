@@ -54,19 +54,18 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
 
   return (
     // 바깥을 눌러도 닫히지 않는다. 결과를 보고 그릇을 치워야 다음으로 넘어간다
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4">
+      <div className="modal-tall flex w-full max-w-sm flex-col justify-center overflow-y-auto rounded-2xl bg-white p-6">
         {stage === 'cooking' && (
           <div className="flex flex-col items-center gap-4 py-6">
-            <span className="animate-bounce text-4xl">🍳</span>
+            <span className="animate-bounce text-5xl">🍳</span>
             <p className="animate-pulse text-sm text-neutral-600">음식을 만드는 중...</p>
           </div>
         )}
 
         {stage === 'eating' && (
           <div className="flex flex-col items-center gap-4 py-6">
-            <span className="animate-pulse text-4xl">🍽️</span>
-            {/* 플레이어 이름은 자유 입력이라 받침을 알 수 없다. 조사가 붙지 않는 '의'로 잇는다 */}
+            <span className="animate-pulse text-5xl">🍽️</span>
             <p className="text-center text-sm text-neutral-600">
               {result.customerName},
               <br />

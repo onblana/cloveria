@@ -40,7 +40,7 @@ export default function Home() {
       .catch(() => setIsChecking(false));
   }, [router]);
 
-  // 새 게임 기록을 만들어 두고 넘긴다. 게임 화면은 '기록을 여는 일'만 하면 된다
+  // play에서 쓸 수 있게 새 게임 기록을 만들어 넘김
   const startGame = () => {
     const name = nameInput.trim();
     if (!name) return;

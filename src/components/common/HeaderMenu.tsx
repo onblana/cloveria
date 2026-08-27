@@ -56,7 +56,7 @@ export function HeaderMenu({ onReset }: HeaderMenuProps) {
       )}
 
       {isConfirming && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <button
             aria-label="취소"
             onClick={() => setIsConfirming(false)}

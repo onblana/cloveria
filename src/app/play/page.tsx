@@ -40,7 +40,6 @@ import {
   type CropId,
   type Customer,
   type Order,
-  type Plot,
   type RecipeId,
 } from '@/lib/game/data';
 import { useRouter } from 'next/navigation';
@@ -137,19 +136,6 @@ export default function PlayPage() {
         ? `${day}일차 마무리하기`
         : `${nextPhase.name} 장사 시작하기`;
 
-  /*
-   * 다 자란 칸의 특별 여부를 그 자리에서 정해 밭에 저장한다.
-   * 수확할 때 뽑지 않으므로 화면에 미리 보여줄 수 있고, 새로고침해도 결과가 바뀌지 않는다.
-   */
-  const revealGrown = (grownPlots: (Plot | null)[], at: number) => {
-    const { plots: next, revealed } = revealGrownPlots(grownPlots, at);
-
-    setPlots(next);
-    for (const cropId of revealed) {
-      pushLog(`✨ ${CROPS[cropId].specialName}이(가) 자랐다! 요정이 반짝인다.`);
-    }
-  };
-
   // 시간은 이 버튼으로만 흐른다. 넘기는 일 자체는 전환 연출이 화면을 덮은 뒤에 일어난다
   const advancePhase = () => {
     // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
@@ -170,7 +156,8 @@ export default function PlayPage() {
       setOrders(createOrders(getOrderableRecipeIds(unlockedCrops)));
     }
     setPhaseCount(pendingPhase);
-    revealGrown(plots, pendingPhase);
+    // 다 자란 칸의 특별 여부를 그 자리에서 정해 둔다. 밭에 ✨로 바로 드러난다
+    setPlots(revealGrownPlots(plots, pendingPhase));
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -183,7 +170,7 @@ export default function PlayPage() {
     setOrders([]);
     setDaily(createDailyRecord());
     pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
-    revealGrown(plots, next);
+    setPlots(revealGrownPlots(plots, next));
   };
 
   // 기록을 여는 화면이다. 읽을 기록이 없으면 이름부터 받도록 시작 화면으로 돌려보낸다
@@ -203,7 +190,7 @@ export default function PlayPage() {
         setPhaseCount(saved.phaseCount);
         setSeeds({ ...createEmptyStock(), ...saved.seeds });
         setInventory({ ...createInventory(), ...saved.crops });
-        setPlots(revealGrownPlots(saved.plots, saved.phaseCount).plots);
+        setPlots(revealGrownPlots(saved.plots, saved.phaseCount));
         setDisplay(saved.display);
         setDaily(saved.daily);
         setFriendship({ ...createFriendship(), ...saved.friendship });

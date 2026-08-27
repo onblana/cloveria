@@ -54,7 +54,7 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
 
   return (
     // 바깥을 눌러도 닫히지 않는다. 결과를 보고 그릇을 치워야 다음으로 넘어간다
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-2">
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-2 backdrop-blur-xs">
       <div className="modal-tall flex w-full flex-col justify-center overflow-y-auto rounded-2xl bg-white p-6">
         {stage === 'cooking' && (
           <div className="flex flex-col items-center gap-4 py-6">

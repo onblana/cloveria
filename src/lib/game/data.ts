@@ -115,19 +115,15 @@ export const rollSpecial = (rate: number) => Math.random() < rate;
  * 바뀐 칸이 없으면 원래 배열을 그대로 돌려주므로 다시 그릴 일이 없다.
  */
 export const revealGrownPlots = (plots: (Plot | null)[], phaseCount: number) => {
-  const revealed: CropId[] = [];
   const next = plots.map((plot) => {
     if (!plot || plot.isSpecial !== undefined || !isPlotReady(plot, phaseCount)) return plot;
 
-    const isSpecial = rollSpecial(CROPS[plot.cropId].specialRate);
-    if (isSpecial) revealed.push(plot.cropId);
-
-    return { ...plot, isSpecial };
+    return { ...plot, isSpecial: rollSpecial(CROPS[plot.cropId].specialRate) };
   });
 
   const changed = next.some((plot, index) => plot !== plots[index]);
 
-  return { plots: changed ? next : plots, revealed };
+  return changed ? next : plots;
 };
 
 export type RecipeId = 'tomatoPasta' | 'cornSoup';

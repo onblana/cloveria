@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CoinIcon } from '@/components/icons/CoinIcon';
-import { TimerIcon } from '@/components/icons/TimerIcon';
 import { BistroView } from '@/components/bistro/BistroView';
 import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
 import { FarewellModal } from '@/components/bistro/FarewellModal';
@@ -437,7 +436,11 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col p-2 gap-3 sm:gap-4 sm:p-8">
+    <main
+      className={`mx-auto flex min-h-screen w-full max-w-xl flex-col gap-3 bg-surface p-2 sm:gap-4 sm:p-8 ${
+        dayPhase.kind === 'farm' ? 'phase-farm' : 'phase-bistro'
+      }`}
+    >
       {/* 좁은 화면에서 줄이 늘어나지 않도록 제목 줄과 상태 줄을 나눈다 */}
       <header className="border-b border-neutral-200 pb-3">
         <div className="flex items-center justify-between">
@@ -449,9 +452,15 @@ export default function PlayPage() {
             <CoinIcon className="text-amber-500" />
             {gold}골드
           </span>
-          <span className="flex items-center gap-1">
-            <TimerIcon />
-            {day}일차 {dayPhase.name}
+          {/* 지금이 농사인지 장사인지 스크롤해도 여기서 확인된다 */}
+          <span
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
+              dayPhase.kind === 'farm'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-amber-100 text-amber-800'
+            }`}
+          >
+            {dayPhase.kind === 'farm' ? '🌱' : '🍳'} {day}일차 {dayPhase.name}
           </span>
         </div>
       </header>
@@ -483,7 +492,7 @@ export default function PlayPage() {
         />
       )}
 
-      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
+      <section className="rounded-lg bg-white p-4 text-sm">
         <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
@@ -521,7 +530,7 @@ export default function PlayPage() {
         내용이 짧으면 mt-auto로 화면 아래에 붙고, 길면 sticky로 아래에 떠 있는다.
         좌우로 음수 여백을 줘 배경이 화면 끝까지 덮이게 하고, 그만큼 안쪽 여백으로 되돌린다.
       */}
-      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto bg-background px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
+      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto bg-surface px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
         <button
           onClick={advancePhase}
           className="min-h-12 w-full rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"

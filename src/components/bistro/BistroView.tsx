@@ -85,7 +85,7 @@ export function BistroView({
   // 대기열이 비면 더 받을 손님이 없다. 기다릴 이유도 없으니 먼저 판정한다
   if (!customer || !recipe) {
     return (
-      <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+      <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
         모든 손님이 다녀갔다.
         <br />
         {phaseName} 장사를 마무리 해야겠다.
@@ -96,7 +96,7 @@ export function BistroView({
   // 기다리는 동안에는 주문도 요리 버튼도 보여주지 않는다
   if (isWaiting) {
     return (
-      <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+      <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
         {WAITING_LINES[lineIndex]}
       </p>
     );
@@ -142,7 +142,7 @@ export function BistroView({
           )}
         </section>
       ) : (
-        <p className="rounded-lg bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+        <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
           요리 재료가 모자라 더 이상 장사를 할 수 없다.
           <br />
           농사를 더 지어야겠다.

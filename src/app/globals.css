@@ -50,11 +50,14 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* 단계별 바탕색. 아래 phase-* 클래스가 이 값을 덮어쓴다 */
+  --surface: var(--background);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
   /* 마루부리를 기본 폰트로 쓰고, 내려받기 전까지는 기기 기본 폰트로 보여준다 */
   --font-sans:
     "MaruBuri", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
@@ -178,4 +181,16 @@ button {
   .clock-reveal {
     animation-duration: 0.01s;
   }
+}
+
+/*
+ * 농사와 식당을 색으로 구분한다.
+ * main에 붙이면 하위 요소가 --surface를 물려받아, 하단 버튼 줄과 전환 덮개도 같이 따라온다.
+ */
+.phase-farm {
+  --surface: #f2f8ef;
+}
+
+.phase-bistro {
+  --surface: #fdf6ec;
 }

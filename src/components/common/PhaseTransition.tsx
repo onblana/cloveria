@@ -50,7 +50,7 @@ export function PhaseTransition({ onHalfway, onFinish }: PhaseTransitionProps) {
     <div
       key={stage}
       aria-hidden
-      className={`fixed inset-0 z-20 bg-background ${
+      className={`fixed inset-0 z-20 bg-surface ${
         stage === 'cover' ? 'clock-cover' : 'clock-reveal'
       }`}
     />

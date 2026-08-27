@@ -8,6 +8,7 @@ import { BistroView } from '@/components/bistro/BistroView';
 import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { HeaderMenu } from '@/components/common/HeaderMenu';
+import { PhaseTransition } from '@/components/common/PhaseTransition';
 import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
 import {
@@ -105,6 +106,8 @@ export default function PlayPage() {
   const [servedOrder, setServedOrder] = useState<Order | null>(null);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
   const [isDayEnding, setIsDayEnding] = useState(false);
+  // 전환 연출이 끝나면 넘어갈 단계. null이면 연출이 돌고 있지 않다
+  const [pendingPhase, setPendingPhase] = useState<number | null>(null);
 
   const pushLog = useCallback((message: string) => {
     setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
@@ -141,7 +144,7 @@ export default function PlayPage() {
     }
   };
 
-  // 시간은 이 버튼으로만 흐른다. 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
+  // 시간은 이 버튼으로만 흐른다. 넘기는 일 자체는 전환 연출이 화면을 덮은 뒤에 일어난다
   const advancePhase = () => {
     // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
     if (dayPhase.id === 'night') {
@@ -149,13 +152,19 @@ export default function PlayPage() {
       return;
     }
 
-    const next = phaseCount + 1;
+    setPendingPhase(phaseCount + 1);
+  };
+
+  // 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
+  const applyPendingPhase = () => {
+    if (pendingPhase === null) return;
+
     // 장사를 열 때마다 손님 대기열을 새로 짠다
-    if (getDayPhase(next).kind === 'bistro') {
+    if (getDayPhase(pendingPhase).kind === 'bistro') {
       setOrders(createOrders());
     }
-    setPhaseCount(next);
-    revealGrown(plots, next);
+    setPhaseCount(pendingPhase);
+    revealGrown(plots, pendingPhase);
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -500,6 +509,13 @@ export default function PlayPage() {
           {advanceLabel}
         </button>
       </div>
+
+      {pendingPhase !== null && (
+        <PhaseTransition
+          onHalfway={applyPendingPhase}
+          onFinish={() => setPendingPhase(null)}
+        />
+      )}
 
       {cookResult && <CookingModal result={cookResult} onClear={clearDishes} />}
 

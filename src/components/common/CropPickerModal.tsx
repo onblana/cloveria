@@ -25,7 +25,7 @@ export function CropPickerModal({
   children,
 }: CropPickerModalProps) {
   return (
-    <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+    <div className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
       {/* 바깥을 눌러도 닫히도록 오버레이 자체를 버튼으로 둔다 */}
       <button
         aria-label="닫기"

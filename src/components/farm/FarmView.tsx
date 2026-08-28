@@ -14,6 +14,15 @@ import {
   type Plot,
 } from '@/lib/game/data';
 
+/** 밭 위로 잠깐 떠오르는 이모지 한 개. 애니메이션이 끝나면 스스로 사라진다 */
+interface PlotEffect {
+  id: number;
+  /** 어느 밭 칸 위에 띄울지 */
+  index: number;
+  emoji: string;
+  kind: 'plant' | 'harvest';
+}
+
 /** 수량 버튼을 길게 눌렀다고 판단하기까지의 시간 (ms) */
 const REPEAT_DELAY = 400;
 /** 길게 누르는 동안 수량이 한 칸씩 바뀌는 간격 (ms) */
@@ -64,6 +73,9 @@ export function FarmView({
   // 심기 모드에 들어가며 작물을 고르는 창
   const [isSeedPickerOpen, setIsSeedPickerOpen] = useState(false);
   const [isDisplayOpen, setIsDisplayOpen] = useState(false);
+  // 심기·수확 연출. 같은 칸을 연달아 눌러도 겹쳐 보이도록 목록으로 들고 있는다
+  const [effects, setEffects] = useState<PlotEffect[]>([]);
+  const nextEffectId = useRef(0);
 
   // 길게 누르기용 타이머. 누르기 시작한 뒤의 대기와 그 뒤의 반복을 따로 잡는다
   const delayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,6 +83,33 @@ export function FarmView({
 
   const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
   const canBuy = shopCrop !== null && gold >= seedTotal;
+
+  const addEffect = (index: number, emoji: string, kind: PlotEffect['kind']) => {
+    const id = nextEffectId.current++;
+
+    setEffects((prev) => [...prev, { id, index, emoji, kind }]);
+  };
+
+  /*
+   * 밭 칸 하나에 걸린 연출들.
+   * 지우는 일은 타이머 대신 애니메이션이 끝나는 순간에 맡겨, 길이가 어긋날 일이 없다.
+   */
+  const renderEffects = (index: number) =>
+    effects
+      .filter((effect) => effect.index === index)
+      .map((effect) => (
+        <span
+          key={effect.id}
+          onAnimationEnd={() =>
+            setEffects((prev) => prev.filter((item) => item.id !== effect.id))
+          }
+          className={`pointer-events-none absolute left-1/2 top-0 text-2xl ${
+            effect.kind === 'plant' ? 'plot-drop' : 'plot-rise'
+          }`}
+        >
+          {effect.emoji}
+        </span>
+      ));
 
   const changeQty = (diff: number) => setSeedQty((q) => Math.max(q + diff, 1));
 
@@ -128,6 +167,12 @@ export function FarmView({
     setIsSeedPickerOpen(false);
   };
 
+  // 밭에 보이던 모습 그대로 떠오르도록, 특별 작물이면 ✨까지 함께 띄운다
+  const tapGrownPlot = (index: number, plot: Plot) => {
+    onHarvest(index);
+    addEffect(index, `${plot.isSpecial ? '✨' : ''}${CROP_EMOJI[plot.cropId]}`, 'harvest');
+  };
+
   /*
    * 빈 밭은 심기 모드에서 씨앗을 들고 있을 때만 반응한다.
    * 그 밖에는 아무 일도 하지 않아, 밭을 누르다 창이 열리는 일이 없다.
@@ -142,6 +187,7 @@ export function FarmView({
     }
 
     onPlant(index, plantingCrop);
+    addEffect(index, '🌱', 'plant');
   };
 
   return (
@@ -190,13 +236,16 @@ export function FarmView({
           {plots.map((plot, index) => {
             if (!plot) {
               return (
-                <button
-                  key={index}
-                  onClick={() => tapEmptyPlot(index)}
-                  className="h-20 rounded-lg border border-soil-edge bg-soil text-xs text-soil-text max-h-[20vw]"
-                >
-                  빈 밭
-                </button>
+                // 연출이 밭 칸을 기준으로 떠오르도록 칸마다 자리를 잡아 둔다
+                <div key={index} className="relative">
+                  <button
+                    onClick={() => tapEmptyPlot(index)}
+                    className="h-20 w-full rounded-lg border border-soil-edge bg-soil text-xs text-soil-text max-h-[20vw]"
+                  >
+                    빈 밭
+                  </button>
+                  {renderEffects(index)}
+                </div>
               );
             }
 
@@ -205,36 +254,36 @@ export function FarmView({
             const ready = isPlotReady(plot, phaseCount);
 
             return (
-              <button
-                key={index}
-                onClick={() => onHarvest(index)}
-                disabled={!ready}
-                className={`h-20 rounded-lg border text-xs max-h-[20vw] ${
-                  !ready
-                    ? 'border-neutral-200 text-neutral-600 bg-lime-50'
-                    : plot.isSpecial
-                      ? 'border-amber-500 bg-amber-100 font-semibold text-amber-800'
-                      : 'border-green-600 bg-green-100 font-semibold text-green-800'
-                }`}
-              >
-                {ready ? (
-                  <>
-                    {/* 특별 작물은 수확 전에 ✨로 알아볼 수 있다 */}
-                    {plot.isSpecial && '✨'}
-                    {CROP_EMOJI[plot.cropId]}
-                    <br />
-                    수확하기
-                  </>
-                ) : (
-                  <>
-                    🌱
-                    <br />
-                    {crop.name}
-                    <br />
-                    {Math.floor((grown / crop.growPhases) * 100)}%
-                  </>
-                )}
-              </button>
+              <div key={index} className="relative">
+                <button
+                  onClick={() => tapGrownPlot(index, plot)}
+                  disabled={!ready}
+                  className={`h-20 w-full rounded-lg border text-xs max-h-[20vw] ${
+                    !ready
+                      ? 'border-neutral-200 text-neutral-600 bg-lime-50'
+                      : plot.isSpecial
+                        ? 'border-amber-500 bg-amber-100 font-semibold text-amber-800'
+                        : 'border-green-600 bg-green-100 font-semibold text-green-800'
+                  }`}
+                >
+                  {ready ? (
+                    <>
+                      {/* 특별 작물은 수확 전에 ✨로 알아볼 수 있다 */}
+                      {plot.isSpecial && '✨'}
+                      {CROP_EMOJI[plot.cropId]}
+                      <br />
+                      수확하기
+                    </>
+                  ) : (
+                    <>
+                      {crop.name}
+                      <br />
+                      {Math.floor((grown / crop.growPhases) * 100)}%
+                    </>
+                  )}
+                </button>
+                {renderEffects(index)}
+              </div>
             );
           })}
         </div>

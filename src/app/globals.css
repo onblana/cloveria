@@ -191,6 +191,49 @@ button {
 }
 
 /*
+ * 씨앗을 심고 작물을 거둘 때 밭 칸 위로 잠깐 떠오르는 이모지.
+ * 심을 때는 위에서 내려앉고, 거둘 때는 위로 떠오르며 흐려진다.
+ * 가로 가운데에 세우려고 translate의 X는 두 지점 모두 -50%로 고정한다.
+ */
+@keyframes plot-drop {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 0.5rem);
+  }
+}
+
+@keyframes plot-rise {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -100%);
+  }
+}
+
+.plot-drop {
+  animation: plot-drop 1s ease-out forwards;
+}
+
+.plot-rise {
+  animation: plot-rise 1s ease-out forwards;
+}
+
+/* 움직임을 줄여달라고 설정한 기기에서는 흔적만 남기고 지나간다 */
+@media (prefers-reduced-motion: reduce) {
+  .plot-drop,
+  .plot-rise {
+    animation-duration: 0.01s;
+  }
+}
+
+/*
  * 농사와 식당을 색으로 구분한다.
  * main에 붙이면 하위 요소가 --surface를 물려받아, 하단 버튼 줄과 전환 덮개도 같이 따라온다.
  */

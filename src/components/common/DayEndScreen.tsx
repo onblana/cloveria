@@ -107,12 +107,12 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
             {harvested.length === 0 ? (
               <p className="text-neutral-400">오늘은 거둔 것이 없다.</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="space-y-1 text-xs">
                 {/* 둘 다 거뒀으면 한 행을 반씩 나눠 쓰고, 하나뿐이면 flex-1이 전체를 채운다 */}
                 {harvested.map(({ cropId, normal = 0, special = 0 }) => (
-                  <li key={cropId} className="flex items-center gap-6">
+                  <li key={cropId} className="flex items-center gap-3">
                     {normal > 0 && (
-                      <span className="flex flex-1 items-center justify-between gap-2">
+                      <span className="flex flex-1 items-center justify-between gap-2 whitespace-nowrap">
                         <span>
                           {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                         </span>
@@ -120,7 +120,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
                       </span>
                     )}
                     {special > 0 && (
-                      <span className="flex flex-1 items-center justify-between gap-2">
+                      <span className="flex flex-1 items-center justify-between gap-2 whitespace-nowrap">
                         <span className="text-amber-300">
                           ✨{CROP_EMOJI[cropId]} {CROPS[cropId].specialName}
                         </span>

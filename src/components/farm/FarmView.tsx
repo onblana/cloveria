@@ -197,41 +197,22 @@ export function FarmView({
           onClick={openShop}
           className="h-11 flex-1 rounded-lg border border-lime-400 bg-lime-200 px-3 text-sm"
         >
-          씨앗 상점
+          상점
         </button>
         <button
           onClick={() => setIsDisplayOpen(true)}
           className="h-11 flex-1 rounded-lg border border-amber-300 bg-amber-200 px-3 text-sm"
         >
-          특별 작물 진열대
+          진열대
+        </button>
+        <button
+          className="h-11 flex-1 rounded-lg border border-sky-300 bg-sky-200 px-3 text-sm"
+        >
+          손님 목록
         </button>
       </div>
 
       <section>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2
-            className={`flex-1 text-base font-bold ${
-              plantingCrop ? 'text-right text-sm text-green-700' : ''
-            }`}
-          >
-            {plantingCrop
-              ? `${CROPS[plantingCrop].name} 씨앗 심는 중`
-              : '텃밭'}
-          </h2>
-          <button
-            onClick={() =>
-              plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
-            }
-            className={`flex-1 ml-7 h-9 shrink-0 rounded-lg border px-3 text-sm ${
-              plantingCrop
-                ? 'border-neutral-300 bg-gray-50 font-semibold text-green-800'
-                : 'border-neutral-300 bg-green-800 font-bold text-white'
-            }`}
-          >
-            {plantingCrop ? '심기 종료' : '씨앗 심기'}
-          </button>
-        </div>
-        {/* 5열 고정. 밭 확장으로 칸이 늘면 아래로 행이 하나씩 늘어난다 */}
         <div className="grid grid-cols-5 gap-1">
           {plots.map((plot, index) => {
             if (!plot) {
@@ -287,6 +268,26 @@ export function FarmView({
             );
           })}
         </div>
+        <div className="mt-2 grid grid-cols-2 items-center justify-between gap-2">
+          {plantingCrop
+            ? <h2 className="ml-1 text-center font-bold text-sm text-green-700">
+              {CROPS[plantingCrop].name} 씨앗 심는 중
+            </h2>
+            : <span></span>
+          }
+          <button
+            onClick={() =>
+              plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
+            }
+            className={`h-10 shrink-0 rounded-lg border text-sm px-3 mb-1 ${
+              plantingCrop
+                ? 'border-neutral-300 bg-gray-50 font-semibold text-green-800'
+                : 'border-neutral-300 bg-green-800 font-bold text-white'
+            }`}
+          >
+            {plantingCrop ? '심기 종료' : '씨앗 심기'}
+          </button>
+        </div>
       </section>
 
       {/* TODO: 밭 확장 업그레이드 상점. 여기에 '밭 넓히기' 버튼이 들어간다 */}
@@ -302,8 +303,8 @@ export function FarmView({
 
       {isShopOpen && (
         <CropPickerModal
-          title="씨앗 상점"
-          description={`가진 골드 ${gold.toLocaleString()}골드`}
+          title="상점"
+          description={`가진 골드: ${gold.toLocaleString()}골드`}
           onClose={() => setIsShopOpen(false)}
         >
           {/* 작물이 늘어도 목록이 길어지지 않도록 2열로 채운다 */}

@@ -481,7 +481,7 @@ export default function PlayPage() {
     // TODO: 친밀도 변화를 보려고 띄우는 알림이다. 밸런스를 정하고 나면 이 줄째로 지울 것
     const queued: { message: string; kind: Toast['kind'] }[] = [
       {
-        message: `${customer.name}에게 ${dishName}${recipe.postpositionObject} 냈다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
+        message: `${customer.name}${customer.postpositionSubject} 만족하며 나갔다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
         kind: 'normal',
       },
     ];

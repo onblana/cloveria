@@ -9,6 +9,7 @@ import { FarewellModal } from '@/components/bistro/FarewellModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { HeaderMenu } from '@/components/common/HeaderMenu';
 import { PhaseTransition } from '@/components/common/PhaseTransition';
+import { useFitToScreen } from '@/components/common/useFitToScreen';
 import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
 import {
@@ -84,6 +85,8 @@ const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
  */
 export default function PlayPage() {
   const router = useRouter();
+  // 내용이 화면보다 길면 전체를 줄여 세로 스크롤을 없앤다
+  const { ref: mainRef, zoom } = useFitToScreen<HTMLElement>();
   // 기록 읽기는 한 번만. 개발 모드에서 이펙트가 두 번 돌아도 로그가 겹치지 않게 한다
   const hasLoaded = useRef(false);
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
@@ -437,6 +440,8 @@ export default function PlayPage() {
 
   return (
     <main
+      ref={mainRef}
+      style={{ zoom }}
       className={`mx-auto flex min-h-screen w-full max-w-xl flex-col gap-3 bg-surface p-2 sm:gap-4 sm:p-8 ${
         dayPhase.kind === 'farm' ? 'phase-farm' : 'phase-bistro'
       }`}

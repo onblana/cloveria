@@ -10,21 +10,21 @@ import {
   type Recipe,
 } from '@/lib/game/data';
 
-/** 기다리는 동안 0.5초마다 차례로 보여줄 문구 */
+/** 기다리는 동안 0.5초마다 무작위로 바꿔 보여줄 문구 */
 const WAITING_LINES = [
-  '손님을 기다리는 중! 🙂',
-  '손님을 기다리는 중? 🤔',
-  '손님을 기다리는 중- 😗',
-  '손님을 기다리는 중. 😐',
-  '손님을 기다리는 중? 🤤',
+  '재료를 손질하는 중 😌',
+  '신메뉴 구상하는 중 🤔',
+  '손님을 기다리는 중 😗',
+  '테이블 닦는 중 🙂',
+  '멍 때리는 중 🤤',
 ];
 
 /** 문구가 바뀌는 간격 (ms) */
 const LINE_STEP_MS = 800;
 
 /** 손님 한 명이 들어오기까지 기다리는 시간의 최소·최대 (ms) */
-const WAIT_MIN_MS = 1000;
-const WAIT_MAX_MS = 4000;
+const WAIT_MIN_MS = 2000;
+const WAIT_MAX_MS = 5000;
 
 interface BistroViewProps {
   customer: Customer | null;
@@ -75,7 +75,13 @@ export function BistroView({
     if (!isWaiting || isTransitioning) return;
 
     const interval = setInterval(
-      () => setLineIndex((index) => (index + 1) % WAITING_LINES.length),
+      () =>
+        setLineIndex((index) => {
+          // 같은 문구가 연달아 나오면 멈춘 것처럼 보여, 직전 것을 뺀 나머지에서 고른다
+          const picked = Math.floor(Math.random() * (WAITING_LINES.length - 1));
+
+          return picked >= index ? picked + 1 : picked;
+        }),
       LINE_STEP_MS,
     );
 
@@ -121,7 +127,6 @@ export function BistroView({
         </p>
       </section>
 
-      {/* 만들 수 없는 요리는 감춘다 */}
       {canCook || canCookSpecial ? (
         <section className="flex gap-2">
           {canCook && (

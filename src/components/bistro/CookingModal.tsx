@@ -24,8 +24,8 @@ interface CookingModalProps {
 }
 
 /** 각 단계를 보여주는 시간 (ms) */
-const COOKING_MS = 2000;
-const EATING_MS = 2000;
+const COOKING_MS = 1500;
+const EATING_MS = 1500;
 
 /*
  * TODO: 지금은 기다리는 애니메이션뿐이다. 요리마다 2단계 미니게임으로 바꾸는 것을 검토할 것
@@ -65,7 +65,8 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
 
         {stage === 'eating' && (
           <div className="flex flex-col items-center gap-4 py-6">
-            <span className="animate-pulse text-5xl">🍽️</span>
+            {/* 식사 단계가 짧아 기본 주기(2초)로는 한 번도 깜빡이지 못한다 */}
+            <span className="animate-pulse text-5xl [animation-duration:750ms]">🍽️</span>
             <p className="text-center text-sm text-neutral-600">
               {result.customerName},
               <br />

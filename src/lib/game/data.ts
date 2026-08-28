@@ -46,6 +46,11 @@ export interface Crop {
   seedPrice: number;
   specialRate: number; // 다 자란 순간 특별 작물로 판정될 확률
   specialName: string;
+  /**
+   * 작물 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다.
+   * 특별 이름은 앞에 말만 붙은 꼴이라 끝 글자가 같아, 이 값을 그대로 쓴다.
+   */
+  postpositionObject: '를' | '을';
 }
 
 export const CROPS: Record<CropId, Crop> = {
@@ -56,6 +61,7 @@ export const CROPS: Record<CropId, Crop> = {
     seedPrice: 20,
     specialRate: 0.08,
     specialName: '황금 토마토',
+    postpositionObject: '를',
   },
   corn: {
     id: 'corn',
@@ -64,6 +70,7 @@ export const CROPS: Record<CropId, Crop> = {
     seedPrice: 50,
     specialRate: 0.08,
     specialName: '황금 옥수수',
+    postpositionObject: '를',
   },
 };
 
@@ -149,6 +156,11 @@ export interface Recipe {
   ingredients: Partial<Record<CropId, number>>;
   price: number;
   specialMultiplier: number; // 특별 요리 메뉴의 가격 배수
+  /**
+   * 메뉴 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다.
+   * 특별 이름은 앞에 말만 붙은 꼴이라 끝 글자가 같아, 이 값을 그대로 쓴다.
+   */
+  postpositionObject: '를' | '을';
 }
 
 export const RECIPES: Record<RecipeId, Recipe> = {
@@ -159,6 +171,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
     ingredients: { tomato: 2 },
     price: 80,
     specialMultiplier: 1.5,
+    postpositionObject: '를',
   },
   cornSoup: {
     id: 'cornSoup',
@@ -167,6 +180,7 @@ export const RECIPES: Record<RecipeId, Recipe> = {
     ingredients: { corn: 2 },
     price: 200,
     specialMultiplier: 1.5,
+    postpositionObject: '를',
   },
 };
 
@@ -196,14 +210,16 @@ export interface Customer {
   /** 요리를 받지 못하고 돌아갈 때 남기는 한마디 */
   missedComment: string;
   /** 이름 뒤에 붙는 조사. 받침 유무가 이름마다 고정이라 미리 적어 둔다 */
-  postposition1: '와' | '과';
-  postposition2: '는' | '은';
+  postpositionAnd: '와' | '과';
+  postpositionTopic: '는' | '은';
+  postpositionObject: '를' | '을';
+  postpositionSubject: '가' | '이';
 }
 
 export const CUSTOMERS: Record<CustomerId, Customer> = {
   headman: {
     id: 'headman',
-    name: '마을 이장',
+    name: '마을 이장님',
     greetings: [
       '안녕하신가',
       '오, 오늘도 문을 열었구먼',
@@ -216,8 +232,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '허어, 오늘따라 요리가 더 맛있구먼!',
     missedComment: '오늘은 재료가 다 떨어졌구먼. 어쩔 수 없지.',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
   postman: {
     id: 'postman',
@@ -234,8 +252,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '우와, 이거 뭔가 다른데요?!',
     missedComment: '아쉽네요. 나중에 다시 들를게요!',
-    postposition1: '와',
-    postposition2: '는',
+    postpositionAnd: '와',
+    postpositionTopic: '는',
+    postpositionObject: '를',
+    postpositionSubject: '가',
   },
   florist: {
     id: 'florist',
@@ -252,8 +272,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '어머, 이거 뭐야? 너무 맛있다!',
     missedComment: '에이, 아쉽다. 다음 번에는 먹을 수 있겠지?',
-    postposition1: '와',
-    postposition2: '는',
+    postpositionAnd: '와',
+    postpositionTopic: '는',
+    postpositionObject: '를',
+    postpositionSubject: '가',
   },
   grandpa: {
     id: 'grandpa',
@@ -270,8 +292,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '허허, 이건 젊어지는 맛이구먼!',
     missedComment: '허허, 헛걸음했구먼. 또 오지 뭐.',
-    postposition1: '와',
-    postposition2: '는',
+    postpositionAnd: '와',
+    postpositionTopic: '는',
+    postpositionObject: '를',
+    postpositionSubject: '가',
   },
   peddler: {
     id: 'peddler',
@@ -288,8 +312,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '이 요리는 값을 못 매기겠군.',
     missedComment: '오늘은 인연이 아니었군. 다음에 다시 오지.',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
   granddaughter: {
     id: 'granddaughter',
@@ -306,8 +332,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '세상에서 제일 맛있어요!',
     missedComment: '으앙, 배고픈데... 내일 또 올게요!',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
   hermit: {
     id: 'hermit',
@@ -324,8 +352,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '...! (눈이 커진다)',
     missedComment: '... (조용히 일어나 문을 나선다)',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
   laundress: {
     id: 'laundress',
@@ -343,8 +373,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     specialComment: '이런 건 자랑해야지. 온 동네에 말해야겠다.',
 
     missedComment: '어머, 오늘은 안 되나 보네. 짬 내서 또 올게.',
-    postposition1: '와',
-    postposition2: '는',
+    postpositionAnd: '와',
+    postpositionTopic: '는',
+    postpositionObject: '를',
+    postpositionSubject: '가',
   },
   shopkeeper: {
     id: 'shopkeeper',
@@ -361,8 +393,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '... 이건 인정할 수밖에 없군.',
     missedComment: '뭐, 그럴 수도 있지. 다음에 오지.',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
   fishmonger: {
     id: 'fishmonger',
@@ -379,8 +413,10 @@ export const CUSTOMERS: Record<CustomerId, Customer> = {
     ],
     specialComment: '내 생선 인생 걸고, 이건 진짜야!',
     missedComment: '에이, 아쉽구만! 다음엔 재료 넉넉히 준비해둬!',
-    postposition1: '과',
-    postposition2: '은',
+    postpositionAnd: '과',
+    postpositionTopic: '은',
+    postpositionObject: '을',
+    postpositionSubject: '이',
   },
 };
 
@@ -429,11 +465,11 @@ export const getGreeting = (customer: Customer, friendship: number): string => {
 const FRIENDSHIP_MILESTONES: { at: number; message: (customer: Customer) => string }[] = [
   {
     at: FRIENDSHIP_MAX,
-    message: (c) => `${c.name}${c.postposition2} 우리 식당의 오래된 단골 손님이다.`,
+    message: (c) => `${c.name}${c.postpositionTopic} 우리 식당의 오래된 단골 손님이다.`,
   },
-  { at: 60, message: (c) => `${c.name}${c.postposition1} 많이 친해졌다.` },
-  { at: 30, message: (c) => `${c.name}${c.postposition1} 조금 더 친해진 것 같다.` },
-  { at: 10, message: (c) => `${c.name}${c.postposition1} 약간 친해진듯 하다.` },
+  { at: 60, message: (c) => `${c.name}${c.postpositionAnd} 많이 친해졌다.` },
+  { at: 30, message: (c) => `${c.name}${c.postpositionAnd} 조금 더 친해진 것 같다.` },
+  { at: 10, message: (c) => `${c.name}${c.postpositionAnd} 약간 친해진듯 하다.` },
 ];
 
 /** 친밀도가 before에서 after로 오르며 새로 넘어선 단계의 문구. 없으면 null */

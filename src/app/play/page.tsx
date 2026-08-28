@@ -219,7 +219,7 @@ export default function PlayPage() {
       comment: customer.missedComment,
       closesShop,
     });
-    pushToast(`${customer.name}을(를) 그냥 돌려보냈다.`);
+    pushToast(`${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.`);
   };
 
   const sendAway = () => missCustomer(false);
@@ -252,7 +252,6 @@ export default function PlayPage() {
     setPhaseCount(next);
     setOrders([]);
     setDaily(createDailyRecord());
-    pushToast(`${getDayNumber(next)}일차 아침이 밝았다.`);
     // 밤을 지나며 한 단계 더 자란 뒤에 특별 여부를 판정한다
     setPlots(revealGrownPlots(growOvernight(plots), next));
   };
@@ -440,8 +439,8 @@ export default function PlayPage() {
     });
     pushToast(
       useSpecial
-        ? `${customer.name}에게 ${recipe.specialName}을(를) 냈다. 감탄하며 ${price.toLocaleString()}골드를 냈다!`
-        : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price.toLocaleString()}골드를 받았다.`,
+        ? `${customer.name}에게 ${recipe.specialName}${recipe.postpositionObject} 냈다. 감탄하며 ${price.toLocaleString()}골드를 냈다!`
+        : `${customer.name}에게 ${recipe.name}${recipe.postpositionObject} 냈다. ${price.toLocaleString()}골드를 받았다.`,
     );
 
     // 요리를 하나 낼 때마다 친밀도가 오른다
@@ -609,7 +608,7 @@ export default function PlayPage() {
 
       {isResting && (
         <RestScreen
-          message="장사를 하지 않고 여유로운 시간을 보냈다"
+          message="장사를 쉬었다"
           onFinish={() => setPendingPhase(phaseCount + 2)}
         />
       )}

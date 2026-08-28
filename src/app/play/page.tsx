@@ -116,6 +116,10 @@ export default function PlayPage() {
   const [daily, setDaily] = useState(createDailyRecord);
   // 조리 연출 창에 보여줄 결과. null이면 창이 닫힌 상태다
   const [cookResult, setCookResult] = useState<CookResult | null>(null);
+  // 조리 연출 창이 닫힌 뒤에 띄울 알림들. 창에 가려지지 않도록 미뤄 둔다
+  const [pendingToasts, setPendingToasts] = useState<
+    { message: string; kind: Toast['kind'] }[]
+  >([]);
   // 연출이 도는 동안 뒤 화면에 그대로 세워둘 손님. 대기열은 이미 다음으로 넘어가 있다
   const [servedOrder, setServedOrder] = useState<Order | null>(null);
   // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
@@ -474,21 +478,30 @@ export default function PlayPage() {
     const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
     setFriendship((prev) => ({ ...prev, [customer.id]: after }));
 
-    // TODO: 친밀도 변화를 보려고 띄우는 알림이다. 밸런스를 정하고 나면 이 토스트째로 지울 것
-    pushToast(
-      `${customer.name}에게 ${dishName}${recipe.postpositionObject} 냈다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
-    );
+    // TODO: 친밀도 변화를 보려고 띄우는 알림이다. 밸런스를 정하고 나면 이 줄째로 지울 것
+    const queued: { message: string; kind: Toast['kind'] }[] = [
+      {
+        message: `${customer.name}에게 ${dishName}${recipe.postpositionObject} 냈다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
+        kind: 'normal',
+      },
+    ];
 
     // 정해진 단계를 넘어설 때만 한 번씩 알린다
     const message = getFriendshipMessage(customer, before, after);
     if (message) {
-      pushToast(message, 'milestone');
+      queued.push({ message, kind: 'milestone' });
     }
+
+    setPendingToasts(queued);
   };
 
   const clearDishes = () => {
     setCookResult(null);
     setServedOrder(null);
+
+    // 창에 가려지지 않도록 미뤄 둔 알림을 이제야 띄운다
+    pendingToasts.forEach(({ message, kind }) => pushToast(message, kind));
+    setPendingToasts([]);
   };
 
   const buySeed = (cropId: CropId, qty: number) => {

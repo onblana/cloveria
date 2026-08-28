@@ -124,11 +124,10 @@ export default function PlayPage() {
   const [pendingPhase, setPendingPhase] = useState<number | null>(null);
   // 장사를 건너뛰는 연출이 화면을 덮고 있는 동안 true
   const [isResting, setIsResting] = useState(false);
-  // 요리를 못 받고 돌아가는 손님의 인사. 마감 때 띄운 것이면 창을 닫는 순간 단계가 넘어간다
+  // 요리를 못 받고 돌아가는 손님의 인사. 손님을 하나씩 돌려보낼 때만 띄운다
   const [farewell, setFarewell] = useState<{
     customerName: string;
     comment: string;
-    closesShop: boolean;
   } | null>(null);
 
   const pushToast = useCallback((message: string) => {
@@ -171,13 +170,33 @@ export default function PlayPage() {
       return;
     }
 
-    // 재료가 모자라 손님을 그냥 보내야 하면 인사를 먼저 받는다
-    if (dayPhase.kind === 'bistro' && order && !canCook && !canCookSpecial) {
-      missCustomer(true);
+    if (dayPhase.kind === 'bistro') {
+      closeShop();
       return;
     }
 
     setPendingPhase(phaseCount + 1);
+  };
+
+  /*
+   * 장사를 마감한다. 기다리던 손님이 있으면 재료가 남았든 아니든 헛걸음을 시킨 셈이라
+   * 친밀도가 깎인다. 유저가 스스로 고른 일이라 인사 창까지 띄우지 않고 토스트로만 알린다.
+   */
+  const closeShop = () => {
+    if (order) {
+      sendCustomerHome(CUSTOMERS[order.customer]);
+    }
+
+    setPendingPhase(phaseCount + 1);
+  };
+
+  /** 헛걸음한 손님과는 사이가 멀어진다. 0 아래로는 내려가지 않는다 */
+  const sendCustomerHome = (customer: Customer) => {
+    setFriendship((prev) => ({
+      ...prev,
+      [customer.id]: Math.max(prev[customer.id] - FRIENDSHIP_PER_MISS, 0),
+    }));
+    pushToast(`${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.`);
   };
 
   /*
@@ -186,20 +205,14 @@ export default function PlayPage() {
    */
   const skipBistro = () => setIsResting(true);
 
-  // 마감 때 띄운 인사만 창을 닫으며 단계를 넘긴다. 돌려보내기는 다음 손님으로 이어진다
+  // 인사를 닫으면 뒤이어 다음 손님을 받는다
   const closeFarewell = () => {
-    const closesShop = farewell?.closesShop ?? false;
-
     setFarewell(null);
     setServedOrder(null);
-    if (closesShop) setPendingPhase(phaseCount + 1);
   };
 
-  /*
-   * 요리를 못 받은 손님을 돌려보낸다.
-   * 개별로 보내면 다음 손님을 받고, 마감으로 보내면 인사를 닫는 순간 단계가 넘어간다.
-   */
-  const missCustomer = (closesShop: boolean) => {
+  /** 손님 하나를 그냥 돌려보내고 다음 손님으로 넘어간다 */
+  const sendAway = () => {
     if (!order) return;
 
     const customer = CUSTOMERS[order.customer];
@@ -207,22 +220,10 @@ export default function PlayPage() {
     // 인사가 떠 있는 동안 뒤 화면에 이 손님을 세워 둔다
     setOrders((prev) => prev.slice(1));
     setServedOrder(order);
+    sendCustomerHome(customer);
 
-    // 헛걸음한 손님과는 사이가 멀어진다. 0 아래로는 내려가지 않는다
-    setFriendship((prev) => ({
-      ...prev,
-      [customer.id]: Math.max(prev[customer.id] - FRIENDSHIP_PER_MISS, 0),
-    }));
-
-    setFarewell({
-      customerName: customer.name,
-      comment: customer.missedComment,
-      closesShop,
-    });
-    pushToast(`${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.`);
+    setFarewell({ customerName: customer.name, comment: customer.missedComment });
   };
-
-  const sendAway = () => missCustomer(false);
 
   // 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
   const applyPhase = (next: number) => {

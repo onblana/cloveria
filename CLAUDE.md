@@ -2,6 +2,7 @@
 
 ## Scope
 - Deliver only the files and formats the request names. Propose extra files, fallbacks, or a different format in text and wait for approval instead of creating them.
+- Never run `npx prettier` or any other formatter that is not configured in this repo. It reformats whole files and buries the real change in unrelated diffs.
 
 ## Response style
 - Answer with the conclusion and the exact steps only. No background, no rationale, no concept explanations unless asked.
@@ -16,6 +17,7 @@
 Rationale for each rule is recorded in `docs/design.md` ("결정 사항"); update that doc, not just this list, when a rule changes.
 - Never render the tilemap with React DOM. Canvas/WebGL only.
 - Keep game rules (crop growth, mutation rolls, pricing) in `src/lib/game/` as pure TypeScript with no DOM or React dependency, so the rendering layer can be swapped.
-- Mobile web is the primary target: every action must work by touch, never keyboard-only, and touch targets are at least 44px.
+- Mobile web is the primary target: every action must work by touch, never keyboard-only. Touch targets are at least 44px in the base layout.
+- Never let the play screen scroll vertically. When content is taller than the viewport, `useFitToScreen` lowers `zoom` until it fits, with no lower bound — targets rendering below 44px is accepted. Use `zoom`, never `transform: scale()`, which would trap full-screen fixed overlays inside the scaled box.
 - No dark mode. The palette stays light regardless of the device setting.
 - The Maru Buri font has no weight 500 — use 600 for emphasis.

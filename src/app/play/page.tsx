@@ -1,262 +1,480 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { CoinIcon } from '@/components/icons/CoinIcon';
-import { TimerIcon } from '@/components/icons/TimerIcon';
+import { BistroView } from '@/components/bistro/BistroView';
+import { CookingModal, type CookResult } from '@/components/bistro/CookingModal';
+import { FarewellModal } from '@/components/bistro/FarewellModal';
+import { DayEndScreen } from '@/components/common/DayEndScreen';
+import { HeaderMenu } from '@/components/common/HeaderMenu';
+import { PhaseTransition } from '@/components/common/PhaseTransition';
+import { RestScreen } from '@/components/common/RestScreen';
+import { ToastStack, type Toast } from '@/components/common/ToastStack';
+import { useFitToScreen } from '@/components/common/useFitToScreen';
+import { useDisplay } from '@/components/farm/DisplayModal';
+import { FarmView } from '@/components/farm/FarmView';
 import {
   CROPS,
-  CUSTOMER_NAMES,
+  CROP_IDS,
+  CUSTOMERS,
+  CUSTOMER_IDS,
   DISPLAY_BONUS_PER_ITEM,
-  DISPLAY_SLOTS,
+  FRIENDSHIP_MAX,
+  FRIENDSHIP_PER_DISH,
+  FRIENDSHIP_PER_MISS,
   INITIAL_GOLD,
   INITIAL_SEEDS,
-  PLOT_COUNT,
   RECIPES,
-  TICK_MS,
+  STARTER_CROP,
+  createDailyRecord,
+  createEmptyPlots,
+  createEmptyStock,
+  createInventory,
+  createStarterSeeds,
+  createUnlockedCrops,
+  createFriendship,
+  getDayNumber,
+  getDayPhase,
+  getFriendshipMessage,
+  getGreeting,
+  getOrderableRecipeIds,
+  growOvernight,
+  isPlotReady,
+  revealGrownPlots,
   type CropId,
+  type Customer,
+  type Order,
   type RecipeId,
 } from '@/lib/game/data';
+import { useRouter } from 'next/navigation';
+
 import { clearGame, loadGame, saveGame } from '@/lib/game/storage';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
-interface Plot {
-  cropId: CropId;
-  plantedTick: number;
-}
 
-interface Order {
-  customer: string;
-  recipeId: RecipeId;
-}
+const pickComment = (customer: Customer, useSpecial: boolean) =>
+  useSpecial
+    ? customer.specialComment
+    : customer.comments[Math.floor(Math.random() * customer.comments.length)];
+const pickRecipe = (recipeIds: RecipeId[]) =>
+  recipeIds[Math.floor(Math.random() * recipeIds.length)];
 
-/** 작물별 보유 수량 (일반 / 변이) */
-type Inventory = Record<CropId, { normal: number; mutant: number }>;
+/**
+ * 한 번의 장사 동안 찾아올 손님들. 손님 순서를 섞어 한 명당 한 번씩만 오게 한다.
+ * 장사를 열 때마다 새로 만들어서, 재료가 없어 마감해도 다음 장사엔 다른 손님이 온다.
+ */
+const createOrders = (recipeIds: RecipeId[]): Order[] => {
+  const shuffled = [...CUSTOMER_IDS];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
 
-const CROP_IDS = Object.keys(CROPS) as CropId[];
-const RECIPE_IDS = Object.keys(RECIPES) as RecipeId[];
+  return shuffled.map((customer) => ({ customer, recipeId: pickRecipe(recipeIds) }));
+};
 
-/** 밭과 탭에서 작물을 한눈에 구분하기 위한 표시용 아이콘 */
-const CROP_EMOJI: Record<CropId, string> = { tomato: '🍅', corn: '🌽' };
+/** 저장을 미루는 시간 (ms). 연달아 바뀌어도 마지막 한 번만 쓴다 */
+const SAVE_DELAY_MS = 400;
 
-/** 시작 작물은 토마토 하나뿐이다 (도입부에서 요정이 건네는 씨앗) */
-const STARTER_CROP: CropId = 'tomato';
+/** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
+/** 토스트 하나가 화면에 머무는 시간 (ms) */
+const TOAST_MS = 2000;
 
-const createInventory = (): Inventory =>
-  Object.fromEntries(CROP_IDS.map((id) => [id, { normal: 0, mutant: 0 }])) as Inventory;
-const createSeeds = (): Record<CropId, number> =>
-  Object.fromEntries(
-    CROP_IDS.map((id) => [id, id === STARTER_CROP ? INITIAL_SEEDS : 0]),
-  ) as Record<CropId, number>;
-// 저장된 기록을 덮어씌울 바탕. 기록에 없는 작물은 0개로 남는다
-const emptySeeds = (): Record<CropId, number> =>
-  Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
-const createPlots = (): (Plot | null)[] => Array.from({ length: PLOT_COUNT }, () => null);
-
-const pickCustomer = () => CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
-const pickRecipe = () => RECIPE_IDS[Math.floor(Math.random() * RECIPE_IDS.length)];
-const createOrder = (): Order => ({ customer: pickCustomer(), recipeId: pickRecipe() });
-const rollMutation = (rate: number) => Math.random() < rate;
-
-/** 진열 보너스를 화면에 보여줄 퍼센트 값으로 바꾼다 */
-const bonusPercent = (count: number) => Math.round(count * DISPLAY_BONUS_PER_ITEM * 100);
-
+/*
+ * TODO: 이 화면이 모든 상태를 들고 있어 어떤 값이 바뀌어도 하위 화면이 전부 다시 그려진다.
+ *       지금 규모에선 문제없지만, 밭 확장으로 칸이 크게 늘거나 캔버스 타일맵이 들어오면
+ *       React.memo와 useCallback으로 다시 그리는 범위를 좁힐 것
+ */
 export default function PlayPage() {
+  const router = useRouter();
+  // 내용이 화면보다 길면 전체를 줄여 세로 스크롤을 없앤다
+  const { ref: mainRef, zoom } = useFitToScreen<HTMLElement>();
+  // 기록 읽기는 한 번만. 개발 모드에서 이펙트가 두 번 돌아도 로그가 겹치지 않게 한다
+  const hasLoaded = useRef(false);
   // loading: 저장된 데이터를 읽는 동안. 읽기 전에 저장하면 기존 기록을 덮어쓰므로 구분이 필요하다
-  const [phase, setPhase] = useState<'loading' | 'naming' | 'playing'>('loading');
-  const [nameInput, setNameInput] = useState('');
+  const [screen, setScreen] = useState<'loading' | 'playing'>('loading');
   const [playerName, setPlayerName] = useState('');
 
-  const [tick, setTick] = useState(0);
+  const [phaseCount, setPhaseCount] = useState(0);
   const [gold, setGold] = useState(INITIAL_GOLD);
   // TODO: 평판은 쓰이는 곳이 없어 주석처리. 손님 종류·레시피 해금을 붙일 때 다시 도입할 것
   // const [reputation, setReputation] = useState(0);
-  const [seeds, setSeeds] = useState(createSeeds);
+  const [seeds, setSeeds] = useState(createStarterSeeds);
   const [inventory, setInventory] = useState(createInventory);
-  const [plots, setPlots] = useState(createPlots);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [display, setDisplay] = useState<CropId[]>([]);
-  const [seedQty, setSeedQty] = useState(1);
-  const [log, setLog] = useState<string[]>([]);
-  // 씨앗 구매·파종·진열이 모두 이 선택을 따른다
-  const [selectedCrop, setSelectedCrop] = useState<CropId>(STARTER_CROP);
+  const [plots, setPlots] = useState(createEmptyPlots);
+  // 이번 장사에 남은 손님들. 맨 앞이 지금 응대할 손님이다
+  const [orders, setOrders] = useState<Order[]>([]);
+  // 한 번이라도 수확해 본 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다
+  const [unlockedCrops, setUnlockedCrops] = useState(createUnlockedCrops);
+  // 화면 위에 잠깐 떠오르는 알림들. 저장하지 않고 시간이 지나면 사라진다
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastId = useRef(0);
+  // 손님별 친밀도. 요리를 낼 때마다 오른다
+  const [friendship, setFriendship] = useState(createFriendship);
+  // 오늘의 결과 화면에 보여줄 집계. 아침이 오면 비워진다
+  const [daily, setDaily] = useState(createDailyRecord);
+  // 조리 연출 창에 보여줄 결과. null이면 창이 닫힌 상태다
+  const [cookResult, setCookResult] = useState<CookResult | null>(null);
+  // 연출이 도는 동안 뒤 화면에 그대로 세워둘 손님. 대기열은 이미 다음으로 넘어가 있다
+  const [servedOrder, setServedOrder] = useState<Order | null>(null);
+  // 밤을 마무리하는 연출이 화면을 덮고 있는 동안 true
+  const [isDayEnding, setIsDayEnding] = useState(false);
+  // 전환 연출이 끝나면 넘어갈 단계. null이면 연출이 돌고 있지 않다
+  const [pendingPhase, setPendingPhase] = useState<number | null>(null);
+  // 장사를 건너뛰는 연출이 화면을 덮고 있는 동안 true
+  const [isResting, setIsResting] = useState(false);
+  // 요리를 못 받고 돌아가는 손님의 인사. 손님을 하나씩 돌려보낼 때만 띄운다
+  const [farewell, setFarewell] = useState<{
+    customerName: string;
+    comment: string;
+  } | null>(null);
 
-  // 최근 소식이 위로 오도록 앞에 쌓고 6줄까지만 유지
-  const pushLog = useCallback((message: string) => {
-    setLog((prev) => [message, ...prev].slice(0, 6));
+  const pushToast = useCallback((message: string) => {
+    toastId.current += 1;
+    const id = toastId.current;
+
+    // 배열 앞에 넣어 최신 알림이 맨 위에 쌓이게 한다
+    setToasts((prev) => [{ id, message }, ...prev]);
+    setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), TOAST_MS);
   }, []);
 
-  // 세션 기반 시간: 페이지가 열려 있는 동안에만 틱이 흐른다
-  useEffect(() => {
-    if (phase !== 'playing') return;
-    const timer = setInterval(() => setTick((t) => t + 1), TICK_MS);
-    return () => clearInterval(timer);
-  }, [phase]);
+  const { display, setDisplay, displayCount, putOnDisplay, takeFromDisplay } = useDisplay({
+    inventory,
+    setInventory,
+    pushToast,
+  });
 
-  // 첫 진입 시 저장된 기록이 있으면 이어서 시작한다
+  const day = getDayNumber(phaseCount);
+  const dayPhase = getDayPhase(phaseCount);
+  const nextPhase = getDayPhase(phaseCount + 1);
+
+  // 단계마다 '넘어가기'의 의미가 달라 문구를 따로 만든다
+  const advanceLabel =
+    dayPhase.kind === 'bistro'
+      ? `${dayPhase.name} 장사 마감하기`
+      : dayPhase.id === 'night'
+        ? `${day}일차 마무리하기`
+        : `${nextPhase.name} 장사 시작하기`;
+
+  const skipLabel = `${nextPhase.name} 장사 건너뛰기`;
+
+  // 농사 단계에서 바로 다음이 장사일 때만 건너뛸 수 있다
+  const canSkipBistro = dayPhase.kind === 'farm' && nextPhase.kind === 'bistro';
+
+  // 시간은 이 버튼으로만 흐른다. 넘기는 일 자체는 전환 연출이 화면을 덮은 뒤에 일어난다
+  const advancePhase = () => {
+    // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
+    if (dayPhase.id === 'night') {
+      setIsDayEnding(true);
+      return;
+    }
+
+    if (dayPhase.kind === 'bistro') {
+      closeShop();
+      return;
+    }
+
+    setPendingPhase(phaseCount + 1);
+  };
+
+  /*
+   * 장사를 마감한다. 기다리던 손님이 있으면 재료가 남았든 아니든 헛걸음을 시킨 셈이라
+   * 친밀도가 깎인다. 유저가 스스로 고른 일이라 인사 창까지 띄우지 않고 토스트로만 알린다.
+   */
+  const closeShop = () => {
+    if (order) {
+      sendCustomerHome(CUSTOMERS[order.customer]);
+    }
+
+    setPendingPhase(phaseCount + 1);
+  };
+
+  /** 헛걸음한 손님과는 사이가 멀어진다. 0 아래로는 내려가지 않는다 */
+  const sendCustomerHome = (customer: Customer) => {
+    setFriendship((prev) => ({
+      ...prev,
+      [customer.id]: Math.max(prev[customer.id] - FRIENDSHIP_PER_MISS, 0),
+    }));
+    pushToast(`${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.`);
+  };
+
+  /*
+   * 장사를 열지 않고 다음 농사 단계로 건너뛴다.
+   * 시계 전환 대신 하얗게 덮는 연출을 쓴다. 하루를 마무리할 때와 같은 결이다.
+   */
+  const skipBistro = () => setIsResting(true);
+
+  // 인사를 닫으면 뒤이어 다음 손님을 받는다
+  const closeFarewell = () => {
+    setFarewell(null);
+    setServedOrder(null);
+  };
+
+  /** 손님 하나를 그냥 돌려보내고 다음 손님으로 넘어간다 */
+  const sendAway = () => {
+    if (!order) return;
+
+    const customer = CUSTOMERS[order.customer];
+
+    // 인사가 떠 있는 동안 뒤 화면에 이 손님을 세워 둔다
+    setOrders((prev) => prev.slice(1));
+    setServedOrder(order);
+    sendCustomerHome(customer);
+
+    setFarewell({ customerName: customer.name, comment: customer.missedComment });
+  };
+
+  // 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
+  const applyPhase = (next: number) => {
+    // 장사를 열 때마다 손님 대기열을 새로 짠다
+    if (getDayPhase(next).kind === 'bistro') {
+      setOrders(createOrders(getOrderableRecipeIds(unlockedCrops)));
+    }
+    setPhaseCount(next);
+    // 다 자란 칸의 특별 여부를 그 자리에서 정해 둔다. 밭에 ✨로 바로 드러난다
+    setPlots(revealGrownPlots(plots, next));
+  };
+
+  const applyPendingPhase = () => {
+    if (pendingPhase === null) return;
+
+    // 시계 전환의 덮개가 다 덮인 순간이라, 이때 흰 화면을 걷어야 티가 나지 않는다
+    setIsResting(false);
+    applyPhase(pendingPhase);
+  };
+
+  // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
+  const finishDayEnd = useCallback(() => setIsDayEnding(false), []);
+
+  // 화면이 덮여 있는 동안 다음 날 아침으로 넘어가고 집계를 비운다
+  const wakeUp = () => {
+    const next = phaseCount + 1;
+    setPhaseCount(next);
+    setOrders([]);
+    setDaily(createDailyRecord());
+    // 밤을 지나며 한 단계 더 자란 뒤에 특별 여부를 판정한다
+    setPlots(revealGrownPlots(growOvernight(plots), next));
+  };
+
+  // 기록을 여는 화면이다. 읽을 기록이 없으면 이름부터 받도록 시작 화면으로 돌려보낸다
   useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+
     loadGame()
       .then((saved) => {
         if (!saved) {
-          setPhase('naming');
+          router.replace('/');
           return;
         }
 
         setPlayerName(saved.playerName);
         setGold(saved.gold);
-        setSeeds({ ...emptySeeds(), ...saved.seeds });
+        setPhaseCount(saved.phaseCount);
+        setSeeds({ ...createEmptyStock(), ...saved.seeds });
         setInventory({ ...createInventory(), ...saved.crops });
+        setPlots(revealGrownPlots(saved.plots, saved.phaseCount));
         setDisplay(saved.display);
-        setOrder(createOrder());
-        setPhase('playing');
-        pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
+        setDaily(saved.daily);
+        setFriendship({ ...createFriendship(), ...saved.friendship });
+        setOrders(saved.orders);
+        setUnlockedCrops(saved.unlockedCrops);
+        setScreen('playing');
+
+        // 시작 화면이 막 만든 기록이면 도입부를, 이어서 하는 기록이면 인사를 띄운다
+        if (saved.introShown) {
+          pushToast(`${saved.playerName}, 식당 문을 다시 열었다.`);
+        } else {
+          pushToast(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS.toLocaleString()}개를 건넸다.`);
+          pushToast(`${saved.playerName}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
+        }
       })
-      .catch(() => setPhase('naming'));
-  }, [pushLog]);
+      .catch(() => router.replace('/'));
+    // setDisplay는 useDisplay가 돌려주는 setState라 값이 바뀌지 않는다
+  }, [pushToast, setDisplay, router]);
 
-  // 저장 대상이 바뀔 때마다 기록한다 (밭 상태와 경과 틱은 저장하지 않음)
+  /*
+   * 저장 대상이 바뀔 때마다 기록한다.
+   * 한 번의 행동에도 여러 상태가 함께 바뀌므로, 조금 미뤘다가 마지막 한 번만 쓴다.
+   */
   useEffect(() => {
-    if (phase !== 'playing') return;
+    if (screen !== 'playing') return;
 
-    saveGame({ playerName, gold, seeds, crops: inventory, display }).catch(() => undefined);
-  }, [phase, playerName, gold, seeds, inventory, display]);
+    const timer = setTimeout(() => {
+      saveGame({
+        playerName,
+        gold,
+        phaseCount,
+        seeds,
+        crops: inventory,
+        plots,
+        display,
+        daily,
+        friendship,
+        orders,
+        unlockedCrops,
+        introShown: true,
+      }).catch(() => undefined);
+    }, SAVE_DELAY_MS);
 
-  const startGame = () => {
-    const name = nameInput.trim();
-    if (!name) return;
+    return () => clearTimeout(timer);
+  }, [
+    screen,
+    playerName,
+    gold,
+    phaseCount,
+    seeds,
+    inventory,
+    plots,
+    display,
+    daily,
+    friendship,
+    orders,
+    unlockedCrops,
+  ]);
 
-    setPlayerName(name);
-    setPhase('playing');
-    setOrder(createOrder());
-    pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
-    pushLog(`${name}, 할머니의 낡은 식당에 도착했다.`);
-  };
+  const plant = (index: number, cropId: CropId) => {
+    if (plots[index] || seeds[cropId] <= 0) return;
 
-  const plant = (index: number) => {
-    if (plots[index] || seeds[selectedCrop] <= 0) return;
-
-    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] - 1 }));
-    setPlots((prev) =>
-      prev.map((plot, i) => (i === index ? { cropId: selectedCrop, plantedTick: tick } : plot)),
-    );
+    setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] - 1 }));
+    setPlots((prev) => prev.map((plot, i) => (i === index ? { cropId, plantedPhase: phaseCount } : plot)));
   };
 
   const harvest = (index: number) => {
     const plot = plots[index];
-    if (!plot) return;
+    if (!plot || !isPlotReady(plot, phaseCount)) return;
 
-    const crop = CROPS[plot.cropId];
-    if (tick - plot.plantedTick < crop.growTicks) return;
+    // 특별 여부는 다 자란 순간 이미 정해져 저장돼 있다
+    const isSpecial = plot.isSpecial ?? false;
 
-    const isMutant = rollMutation(crop.mutationRate);
+    // 처음 거둔 작물은 그때부터 그 작물이 든 요리가 주문에 나온다
+    setUnlockedCrops((prev) => (prev.includes(plot.cropId) ? prev : [...prev, plot.cropId]));
     setInventory((prev) => ({
       ...prev,
       [plot.cropId]: {
-        normal: prev[plot.cropId].normal + (isMutant ? 0 : 1),
-        mutant: prev[plot.cropId].mutant + (isMutant ? 1 : 0),
+        normal: prev[plot.cropId].normal + (isSpecial ? 0 : 1),
+        special: prev[plot.cropId].special + (isSpecial ? 1 : 0),
       },
     }));
     setPlots((prev) => prev.map((p, i) => (i === index ? null : p)));
-
-    // 일반 수확은 너무 잦아 로그를 남기지 않고, 드물게 나오는 변이만 알린다
-    if (isMutant) {
-      pushLog(`✨ ${crop.mutantName}이(가) 자랐다! 요정이 반짝인다.`);
-    }
+    setDaily((prev) => {
+      const before = prev.harvest[plot.cropId] ?? { normal: 0, special: 0 };
+      return {
+        ...prev,
+        harvest: {
+          ...prev.harvest,
+          [plot.cropId]: {
+            normal: before.normal + (isSpecial ? 0 : 1),
+            special: before.special + (isSpecial ? 1 : 0),
+          },
+        },
+      };
+    });
   };
 
+  const order = orders[0] ?? null;
   const recipe = order ? RECIPES[order.recipeId] : null;
 
-  const { canCook, canCookSignature } = useMemo(() => {
-    if (!recipe) return { canCook: false, canCookSignature: false };
+  /*
+   * 화면에 세워둘 손님. 연출 중에는 방금 요리를 받은 손님을 그대로 두고,
+   * 그릇을 치우면 그때 다음 손님으로 바뀐다. 대기열(order)은 새로고침에 대비해 먼저 줄여둔다.
+   */
+  const shownOrder = servedOrder ?? order;
+  const shownRecipe = shownOrder ? RECIPES[shownOrder.recipeId] : null;
+
+  const { canCook, canCookSpecial } = useMemo(() => {
+    if (!recipe) return { canCook: false, canCookSpecial: false };
 
     const entries = Object.entries(recipe.ingredients) as [CropId, number][];
+    // 두 요리는 쓰는 재료가 아예 다르다. 각자 필요한 만큼 있어야 만들 수 있다
     return {
       canCook: entries.every(([cropId, need]) => inventory[cropId].normal >= need),
-      canCookSignature: entries.every(
-        ([cropId, need]) =>
-          inventory[cropId].mutant >= 1 &&
-          inventory[cropId].normal + inventory[cropId].mutant >= need,
-      ),
+      canCookSpecial: entries.every(([cropId, need]) => inventory[cropId].special >= need),
     };
   }, [recipe, inventory]);
 
-  const cook = (useSignature: boolean) => {
+  const cook = (useSpecial: boolean) => {
     if (!order || !recipe) return;
-    if (useSignature ? !canCookSignature : !canCook) return;
+    if (useSpecial ? !canCookSpecial : !canCook) return;
 
     const entries = Object.entries(recipe.ingredients) as [CropId, number][];
     setInventory((prev) => {
       const next = { ...prev };
       for (const [cropId, need] of entries) {
-        // 시그니처는 변이 재료를 우선 소모하고, 일반 조리는 일반 재료만 쓴다
-        const usedMutant = useSignature ? Math.min(prev[cropId].mutant, need) : 0;
+        // 특별 요리는 특별 재료만, 일반 요리는 일반 재료만 쓴다
+        const usedSpecial = useSpecial ? need : 0;
         next[cropId] = {
-          normal: prev[cropId].normal - (need - usedMutant),
-          mutant: prev[cropId].mutant - usedMutant,
+          normal: prev[cropId].normal - (need - usedSpecial),
+          special: prev[cropId].special - usedSpecial,
         };
       }
       return next;
     });
 
-    const basePrice = useSignature
-      ? recipe.price * recipe.signatureMultiplier
-      : recipe.price;
-    // 진열대에 놓인 변이 작물이 많을수록 모든 요리가 비싸게 팔린다
-    const price = Math.round(basePrice * (1 + display.length * DISPLAY_BONUS_PER_ITEM));
+    const basePrice = Math.round(
+      useSpecial ? recipe.price * recipe.specialMultiplier : recipe.price,
+    );
+    // 진열대에 놓인 특별 작물이 많을수록 모든 요리가 비싸게 팔린다
+    const price = Math.round(basePrice * (1 + displayCount * DISPLAY_BONUS_PER_ITEM));
+    // 원래 금액과 따로 보여주려고 보너스만 떼어 둔다. 합계는 price 그대로다
+    const displayBonus = price - basePrice;
 
     setGold((prev) => prev + price);
-    setOrder(createOrder());
+    setDaily((prev) => ({ ...prev, earned: prev.earned + price }));
 
-    pushLog(
-      useSignature
-        ? `${order.customer}에게 ${recipe.signatureName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
-        : `${order.customer}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
-    );
+    // 연출 도중에 새로고침해도 같은 손님을 다시 받지 않도록 여기서 대기열을 줄인다
+    setOrders((prev) => prev.slice(1));
+    setServedOrder(order);
+
+    const customer = CUSTOMERS[order.customer];
+    const dishName = useSpecial ? recipe.specialName : recipe.name;
+    setCookResult({
+      customerName: customer.name,
+      playerName,
+      dishName,
+      basePrice,
+      displayBonus,
+      price,
+      comment: pickComment(customer, useSpecial),
+    });
+
+    // 요리를 하나 낼 때마다 친밀도가 오른다
+    const before = friendship[customer.id];
+    const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
+    setFriendship((prev) => ({ ...prev, [customer.id]: after }));
+
+    // 정해진 단계를 넘어설 때만 한 번씩 알린다
+    const message = getFriendshipMessage(customer, before, after);
+    if (message) {
+      pushToast(message);
+    }
   };
 
-  const seedPrice = CROPS[selectedCrop].seedPrice;
-  const seedTotal = seedPrice * seedQty;
-
-  const buySeed = () => {
-    if (gold < seedTotal) return;
-
-    setGold((prev) => prev - seedTotal);
-    setSeeds((prev) => ({ ...prev, [selectedCrop]: prev[selectedCrop] + seedQty }));
-    pushLog(`${CROPS[selectedCrop].name} 씨앗 ${seedQty}개를 ${seedTotal}골드에 샀다.`);
+  const clearDishes = () => {
+    setCookResult(null);
+    setServedOrder(null);
   };
 
-  const putOnDisplay = (cropId: CropId) => {
-    if (display.length >= DISPLAY_SLOTS || inventory[cropId].mutant <= 0) return;
+  const buySeed = (cropId: CropId, qty: number) => {
+    const total = CROPS[cropId].seedPrice * qty;
+    if (gold < total) return;
 
-    setInventory((prev) => ({
-      ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant - 1 },
-    }));
-    setDisplay((prev) => [...prev, cropId]);
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
+    setGold((prev) => prev - total);
+    setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
+    setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
+    pushToast(`${CROPS[cropId].name} 씨앗 ${qty.toLocaleString()}개를 ${total.toLocaleString()}골드에 샀다.`);
   };
 
-  const takeFromDisplay = (index: number) => {
-    const cropId = display[index];
-    if (!cropId) return;
-
-    setInventory((prev) => ({
-      ...prev,
-      [cropId]: { ...prev[cropId], mutant: prev[cropId].mutant + 1 },
-    }));
-    setDisplay((prev) => prev.filter((_, i) => i !== index));
-    pushLog(`${CROPS[cropId].mutantName}을(를) 진열대에서 내렸다.`);
-  };
-
-  // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로 요정이 씨앗을 준다
+  // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
   const totalSeeds = CROP_IDS.reduce((sum, id) => sum + seeds[id], 0);
   const totalCrops = CROP_IDS.reduce(
-    (sum, id) => sum + inventory[id].normal + inventory[id].mutant,
+    (sum, id) => sum + inventory[id].normal + inventory[id].special,
     0,
   );
   const cheapestSeedPrice = Math.min(...CROP_IDS.map((id) => CROPS[id].seedPrice));
   const isStuck =
-    phase === 'playing' &&
+    screen === 'playing' &&
     totalSeeds === 0 &&
     gold < cheapestSeedPrice &&
     plots.every((plot) => plot === null) &&
@@ -264,7 +482,7 @@ export default function PlayPage() {
 
   const receiveGiftSeed = () => {
     setSeeds((prev) => ({ ...prev, [STARTER_CROP]: prev[STARTER_CROP] + 1 }));
-    pushLog('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
+    pushToast('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
   };
 
   const resetGame = () => {
@@ -273,261 +491,159 @@ export default function PlayPage() {
       .catch(() => undefined);
   };
 
-  if (phase === 'loading') {
+  if (screen === 'loading') {
     return <LoadingScreen message="기록을 불러오는 중..." />;
   }
 
-  if (phase === 'naming') {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
-        <div className="space-y-3 text-sm leading-relaxed text-neutral-600">
-          <p>클로버 마을에는 오래된 전설이 있다.</p>
-          <p>
-            이 마을에서 농사를 지으면 클로버의 행운으로 희귀한 작물을 얻을 수 있다는 것. 단,
-            선택받은 자만이 그 행운을 얻는다.
-          </p>
-          <p>이제는 아무도 믿지 않는 구닥다리 이야기다.</p>
-        </div>
-
-        <div className="space-y-3">
-          <label htmlFor="player-name" className="block text-lg font-semibold">
-            당신의 이름은 무엇인가요?
-          </label>
-          <input
-            id="player-name"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && startGame()}
-            placeholder="이름을 입력하세요"
-            className="w-full rounded-lg border border-neutral-300 px-4 py-2 outline-none focus:border-green-500"
-          />
-          <button
-            onClick={startGame}
-            disabled={!nameInput.trim()}
-            className="w-full rounded-lg bg-green-600 py-2 font-semibold text-white disabled:bg-neutral-300"
-          >
-            마을로 돌아가기
-          </button>
-        </div>
-      </main>
-    );
-  }
-
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-5 p-4 sm:gap-6 sm:p-8">
-      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 pb-4">
-        <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
+    <main
+      ref={mainRef}
+      style={{ zoom }}
+      className={`mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 bg-surface p-2 sm:gap-4 sm:p-8 ${
+        dayPhase.kind === 'farm' ? 'phase-farm' : 'phase-bistro'
+      }`}
+    >
+      <header className="border-b border-neutral-200 pb-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">
+            {playerName}의 {dayPhase.kind === 'farm' ? '텃밭' : '식당'}
+          </h1>
+          <HeaderMenu onReset={resetGame} />
+        </div>
         <div className="flex items-center gap-4 text-sm text-neutral-600">
           <span className="flex items-center gap-1">
             <CoinIcon className="text-amber-500" />
-            {gold}골드
+            {gold.toLocaleString()}골드
           </span>
-          <span className="flex items-center gap-1">
-            <TimerIcon />
-            {tick}
+          <span
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
+              dayPhase.kind === 'farm'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-amber-100 text-amber-800'
+            }`}
+          >
+            {dayPhase.kind === 'farm' ? '🌱' : '🍳'} {day}일차 {dayPhase.name}
           </span>
-          <button onClick={resetGame} className="text-xs text-neutral-400 underline">
-            처음부터
-          </button>
         </div>
       </header>
 
-      <section className="flex gap-2">
-        {CROP_IDS.map((cropId) => (
-          <button
-            key={cropId}
-            onClick={() => setSelectedCrop(cropId)}
-            className={`h-11 flex-1 rounded-lg border text-sm ${
-              selectedCrop === cropId
-                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                : 'border-neutral-300 text-neutral-600'
-            }`}
-          >
-            {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-          </button>
-        ))}
-      </section>
-
-      <section className="flex items-center gap-2">
-        <button
-          onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
-          disabled={seedQty <= 1}
-          className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
-        >
-          −
-        </button>
-        <span className="w-8 text-center tabular-nums">{seedQty}</span>
-        <button
-          onClick={() => setSeedQty((q) => q + 1)}
-          className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg"
-        >
-          +
-        </button>
-        <button
-          onClick={buySeed}
-          disabled={gold < seedTotal}
-          className="h-11 flex-1 rounded-lg border border-neutral-300 px-3 text-sm disabled:opacity-40"
-        >
-          {CROPS[selectedCrop].name} 씨앗 구매 ({seedTotal}골드)
-        </button>
-      </section>
-      {order && recipe && (
-        <section className="rounded-lg bg-amber-50 p-4">
-          <h2 className="text-sm font-semibold text-amber-900">주문</h2>
-          <p className="mt-1 text-sm">
-            {order.customer} — <strong>{recipe.name}</strong>
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">
-            필요 재료:{' '}
-            {(Object.entries(recipe.ingredients) as [CropId, number][])
-              .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개`)
-              .join(', ')}
-            {display.length > 0 && ` · 진열 보너스 +${bonusPercent(display.length)}%`}
-          </p>
-        </section>
+      {dayPhase.kind === 'farm' && (
+        <FarmView
+          /*
+           * 단계가 넘어가면 심기 모드와 상점 상태를 처음으로 되돌린다.
+           * 밤과 다음날 아침은 둘 다 농사 단계라 이 화면이 그대로 남아,
+           * 놔두면 잠든 뒤에도 어제 고른 씨앗을 계속 들고 있는 것처럼 보인다.
+           */
+          key={phaseCount}
+          gold={gold}
+          seeds={seeds}
+          plots={plots}
+          phaseCount={phaseCount}
+          inventory={inventory}
+          friendship={friendship}
+          display={display}
+          cropIds={CROP_IDS}
+          isStuck={isStuck}
+          onBuySeed={buySeed}
+          onPlant={plant}
+          onHarvest={harvest}
+          onPutOnDisplay={putOnDisplay}
+          onTakeFromDisplay={takeFromDisplay}
+          onReceiveGiftSeed={receiveGiftSeed}
+        />
       )}
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold">밭</h2>
-        <div className="grid grid-cols-4 gap-2">
-          {plots.map((plot, index) => {
-            if (!plot) {
-              return (
-                <button
-                  key={index}
-                  onClick={() => plant(index)}
-                  disabled={seeds[selectedCrop] <= 0}
-                  className="h-24 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
-                >
-                  빈 밭
-                  <br />
-                  {CROPS[selectedCrop].name} 심기
-                </button>
-              );
-            }
-
-            const crop = CROPS[plot.cropId];
-            const grown = tick - plot.plantedTick;
-            const ready = grown >= crop.growTicks;
-
-            return (
-              <button
-                key={index}
-                onClick={() => harvest(index)}
-                disabled={!ready}
-                className={`h-24 rounded-lg border text-xs ${
-                  ready
-                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                    : 'border-neutral-200 text-neutral-500'
-                }`}
-              >
-                {ready ? (
-                  <>
-                    {CROP_EMOJI[plot.cropId]}
-                    <br />
-                    수확하기
-                  </>
-                ) : (
-                  <>
-                    🌱
-                    <br />
-                    {grown} / {crop.growTicks}
-                  </>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold">진열대</h2>
-        <p className="mb-2 text-xs text-neutral-500">
-          놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +{bonusPercent(1)}%)
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: DISPLAY_SLOTS }, (_, index) => {
-            const cropId = display[index];
-
-            if (!cropId) {
-              return (
-                <button
-                  key={index}
-                  onClick={() => putOnDisplay(selectedCrop)}
-                  disabled={inventory[selectedCrop].mutant <= 0}
-                  className="h-20 rounded-lg border border-dashed border-neutral-300 text-xs text-neutral-500 disabled:opacity-40"
-                >
-                  빈 진열대
-                  <br />
-                  올리기
-                </button>
-              );
-            }
-
-            return (
-              <button
-                key={index}
-                onClick={() => takeFromDisplay(index)}
-                className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
-              >
-                ✨ {CROPS[cropId].mutantName}
-                <br />
-                <span className="font-normal text-amber-600">내리기</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="space-y-1 rounded-lg bg-neutral-50 p-4 text-sm">
+      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
+        <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
             <span>
-              {CROPS[cropId].name} 씨앗 {seeds[cropId]}개
-            </span>
-            <span>
-              {CROPS[cropId].name} {inventory[cropId].normal}개
+              {CROPS[cropId].name} {inventory[cropId].normal.toLocaleString()}개
             </span>
             <span className="text-amber-700">
-              ✨ {CROPS[cropId].mutantName} {inventory[cropId].mutant}개
+              ✨ {CROPS[cropId].specialName} {inventory[cropId].special.toLocaleString()}개
             </span>
           </div>
         ))}
       </section>
 
-      <section className="flex gap-2">
-        <button
-          onClick={() => cook(false)}
-          disabled={!canCook}
-          className="min-h-12 flex-1 rounded-lg bg-green-600 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-        >
-          요리해서 내놓기
-        </button>
-        <button
-          onClick={() => cook(true)}
-          disabled={!canCookSignature}
-          className="min-h-12 flex-1 rounded-lg bg-amber-500 px-2 py-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-        >
-          ✨ 시그니처로 만들기
-        </button>
-      </section>
-
-      {isStuck && (
-        <button
-          onClick={receiveGiftSeed}
-          className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
-        >
-          🍀 요정에게 도움 청하기
-        </button>
+      {dayPhase.kind === 'bistro' && (
+        <BistroView
+          /* 손님이 바뀔 때마다 새로 붙어야 기다리는 연출이 다시 돈다 */
+          key={shownOrder?.customer ?? 'empty'}
+          customer={shownOrder ? CUSTOMERS[shownOrder.customer] : null}
+          greeting={
+            shownOrder
+              ? getGreeting(CUSTOMERS[shownOrder.customer], friendship[shownOrder.customer])
+              : ''
+          }
+          phaseName={dayPhase.name}
+          recipe={shownRecipe}
+          isTransitioning={pendingPhase !== null}
+          displayCount={displayCount}
+          canCook={canCook}
+          canCookSpecial={canCookSpecial}
+          onCook={cook}
+          onSendAway={sendAway}
+        />
       )}
 
-      <section className="space-y-1 border-t border-neutral-200 pt-4 text-sm text-neutral-600">
-        {log.map((line, index) => (
-          <p key={`${tick}-${index}-${line}`} className={index === 0 ? 'text-neutral-900' : ''}>
-            {line}
-          </p>
-        ))}
-      </section>
+      {/*
+        내용이 짧으면 mt-auto로 화면 아래에 붙고, 길면 sticky로 아래에 떠 있는다.
+        좌우로 음수 여백을 줘 배경이 화면 끝까지 덮이게 하고, 그만큼 안쪽 여백으로 되돌린다.
+      */}
+      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto flex gap-2 bg-surface px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
+        <button
+          onClick={advancePhase}
+          className="min-h-12 flex-1 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
+        >
+          {advanceLabel}
+        </button>
+        {canSkipBistro && (
+          <button
+            onClick={skipBistro}
+            className="min-h-12 flex-1 rounded-lg border border-neutral-300 bg-neutral-100 py-3 text-sm text-neutral-600"
+          >
+            {skipLabel}
+          </button>
+        )}
+      </div>
+
+      <ToastStack toasts={toasts} />
+
+      {isResting && (
+        <RestScreen
+          message={`${nextPhase.name} 장사를 쉬었다`}
+          onFinish={() => setPendingPhase(phaseCount + 2)}
+        />
+      )}
+
+      {pendingPhase !== null && (
+        <PhaseTransition
+          onHalfway={applyPendingPhase}
+          onFinish={() => setPendingPhase(null)}
+        />
+      )}
+
+      {farewell && (
+        <FarewellModal
+          customerName={farewell.customerName}
+          comment={farewell.comment}
+          onClose={closeFarewell}
+        />
+      )}
+
+      {cookResult && <CookingModal result={cookResult} onClear={clearDishes} />}
+
+      {isDayEnding && (
+        <DayEndScreen
+          day={day}
+          record={daily}
+          cropIds={CROP_IDS}
+          onWake={wakeUp}
+          onFinish={finishDayEnd}
+        />
+      )}
     </main>
   );
 }

@@ -15,16 +15,34 @@ const STORY_LINES = [
   '당신은 할머니가 남겨 주신 텃밭이 딸린 작은 식당을 운영하기 위해 도시에서 시골로 내려왔다.',
 ];
 
-/** 문단이 하나씩 나타나는 간격 (초) */
-const STORY_STEP_SEC = 2;
+/** 문단이 하나씩 나타나는 간격 (ms) */
+const STORY_STEP_MS = 2000;
 
-/** 이름 입력은 이야기가 다 나온 뒤에 나타난다 */
-const NAME_DELAY_SEC = STORY_LINES.length * STORY_STEP_SEC;
+/** 이야기 문단들과 그 뒤에 오는 이름 입력까지 합한 수 */
+const TOTAL_BLOCKS = STORY_LINES.length + 1;
 
 export default function Home() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [nameInput, setNameInput] = useState('');
+  // 지금까지 보여준 덩어리 수. 첫 문단은 들어오자마자 보인다
+  const [shownBlocks, setShownBlocks] = useState(1);
+
+  const isStoryDone = shownBlocks >= TOTAL_BLOCKS;
+
+  const showNextBlock = () => setShownBlocks((count) => Math.min(count + 1, TOTAL_BLOCKS));
+
+  /*
+   * 시간이 되면 다음 덩어리를 보여준다.
+   * shownBlocks가 의존성이라, 터치로 미리 넘기면 타이머도 그 시점부터 다시 센다.
+   */
+  useEffect(() => {
+    if (isChecking || isStoryDone) return;
+
+    const timer = setTimeout(showNextBlock, STORY_STEP_MS);
+
+    return () => clearTimeout(timer);
+  }, [isChecking, isStoryDone, shownBlocks]);
 
   // 이어서 할 기록이 있으면 도입부를 건너뛰고 곧바로 게임 화면으로 보낸다
   useEffect(() => {
@@ -56,41 +74,45 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 p-8">
+      {/* 이야기가 도는 동안에만 화면을 덮어, 아무 데나 눌러도 다음 문단으로 넘어가게 한다 */}
+      {!isStoryDone && (
+        <button
+          aria-label="다음 문단 보기"
+          onClick={showNextBlock}
+          className="fixed inset-0 z-10 cursor-default"
+        />
+      )}
+
       <div className="space-y-3 text-sm leading-relaxed text-neutral-600">
-        {STORY_LINES.map((line, index) => (
-          <p
-            key={line}
-            className="story-line whitespace-pre-line"
-            style={{ animationDelay: `${index * STORY_STEP_SEC}s` }}
-          >
+        {STORY_LINES.slice(0, shownBlocks).map((line) => (
+          <p key={line} className="story-line whitespace-pre-line">
             {line}
           </p>
         ))}
       </div>
 
-      <div
-        className="story-line space-y-3"
-        style={{ animationDelay: `${NAME_DELAY_SEC}s` }}
-      >
-        <label htmlFor="player-name" className="block text-lg font-semibold">
-          당신의 이름은 무엇인가요?
-        </label>
-        <input
-          id="player-name"
-          value={nameInput}
-          onChange={(e) => setNameInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && startGame()}
-          placeholder="이름을 입력하세요"
-          className="w-full rounded-lg border border-neutral-300 px-4 py-2 outline-none focus:border-green-500"
-        />
-        <button
-          onClick={startGame}
-          disabled={!nameInput.trim()}
-          className="min-h-12 w-full rounded-lg bg-green-600 py-2 font-semibold text-white disabled:bg-neutral-300"
-        >
-          시작하기
-        </button>
-      </div>
+      {isStoryDone && (
+        <div className="story-line space-y-3">
+          <label htmlFor="player-name" className="block text-lg font-semibold">
+            당신의 이름은 무엇인가요?
+          </label>
+          <input
+            id="player-name"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && startGame()}
+            placeholder="이름을 입력하세요"
+            className="w-full rounded-lg border border-neutral-300 px-4 py-2 outline-none focus:border-green-500"
+          />
+          <button
+            onClick={startGame}
+            disabled={!nameInput.trim()}
+            className="min-h-12 w-full rounded-lg bg-green-600 py-2 font-semibold text-white disabled:bg-neutral-300"
+          >
+            시작하기
+          </button>
+        </div>
+      )}
     </main>
   );
 }

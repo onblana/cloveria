@@ -122,7 +122,7 @@ export function FarmView({
 
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-base font-bold">
+          <h2 className="flex-1 text-base font-bold">
             {plantingCrop
               ? `씨앗 심기: ${CROPS[plantingCrop].name} (${seeds[plantingCrop]}개)`
               : '텃밭'}
@@ -131,13 +131,13 @@ export function FarmView({
             onClick={() =>
               plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
             }
-            className={`h-11 shrink-0 rounded-lg border px-3 text-sm ${
+            className={`flex-1 h-9 shrink-0 rounded-lg border px-3 text-sm ${
               plantingCrop
                 ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                : 'border-neutral-300'
+                : 'border-neutral-300 bg-green-800 font-bold text-white'
             }`}
           >
-            {plantingCrop ? '씨앗 심기 끝' : '🌱 씨앗 심기'}
+            {plantingCrop ? '심기 종료' : '씨앗 심기'}
           </button>
         </div>
         {/* 5열 고정. 밭 확장으로 칸이 늘면 아래로 행이 하나씩 늘어난다 */}

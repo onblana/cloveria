@@ -549,7 +549,7 @@ export default function PlayPage() {
         />
       )}
 
-      <section className="rounded-lg bg-white p-4 text-sm">
+      <section className="rounded-lg bg-neutral-50 p-4 text-sm">
         <h2 className="mb-2 text-sm font-bold">가지고 있는 요리 재료</h2>
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
@@ -591,15 +591,14 @@ export default function PlayPage() {
       <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto flex gap-2 bg-surface px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
         <button
           onClick={advancePhase}
-          className="min-h-12 flex-2 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
+          className="min-h-12 flex-1 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
         >
           {advanceLabel}
         </button>
-        {/* 장사를 열기 직전에만, 그 장사를 통째로 넘기는 선택지를 함께 둔다 */}
         {canSkipBistro && (
           <button
             onClick={skipBistro}
-            className="min-h-12 flex-1 rounded-lg border border-neutral-300 py-3 text-sm text-neutral-600"
+            className="min-h-12 flex-1 rounded-lg border border-neutral-300 bg-neutral-100 py-3 text-sm text-neutral-600"
           >
             {skipLabel}
           </button>

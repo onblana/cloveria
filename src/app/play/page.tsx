@@ -505,7 +505,9 @@ export default function PlayPage() {
     >
       <header className="border-b border-neutral-200 pb-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
+          <h1 className="text-lg font-semibold">
+            {playerName}의 {dayPhase.kind === 'farm' ? '텃밭' : '식당'}
+          </h1>
           <HeaderMenu onReset={resetGame} />
         </div>
         <div className="flex items-center gap-4 text-sm text-neutral-600">

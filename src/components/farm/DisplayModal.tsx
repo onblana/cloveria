@@ -119,7 +119,7 @@ export function DisplayModal({
   return (
     <CropPickerModal
       title="진열대"
-      description={`놓아둔 만큼 모든 요리가 비싸게 팔린다 (개당 +${getDisplayBonusPercent(1)}%)`}
+      description={`진열해두면 요리가 비싸게 팔린다 (개당 +${getDisplayBonusPercent(1)}%)`}
       onClose={onClose}
     >
       <div className="grid grid-cols-3 gap-2">

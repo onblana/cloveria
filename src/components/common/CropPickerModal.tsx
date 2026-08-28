@@ -45,8 +45,8 @@ export function CropPickerModal({
             </button>
           )}
           <div>
-            <h2 className="text-sm font-semibold">{title}</h2>
-            {description && <p className="mt-1 text-xs text-neutral-500">{description}</p>}
+            <h2 className="text-lg font-semibold mb-4">{title}</h2>
+            {description && <p className="mb-2 text-xs text-neutral-800">{description}</p>}
           </div>
         </div>
 

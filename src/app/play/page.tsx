@@ -9,6 +9,7 @@ import { FarewellModal } from '@/components/bistro/FarewellModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { HeaderMenu } from '@/components/common/HeaderMenu';
 import { PhaseTransition } from '@/components/common/PhaseTransition';
+import { RestScreen } from '@/components/common/RestScreen';
 import { ToastStack, type Toast } from '@/components/common/ToastStack';
 import { useFitToScreen } from '@/components/common/useFitToScreen';
 import { useDisplay } from '@/components/farm/DisplayModal';
@@ -121,7 +122,8 @@ export default function PlayPage() {
   const [isDayEnding, setIsDayEnding] = useState(false);
   // 전환 연출이 끝나면 넘어갈 단계. null이면 연출이 돌고 있지 않다
   const [pendingPhase, setPendingPhase] = useState<number | null>(null);
-  // 요리를 못 받고 돌아가는 손님의 인사. null이면 창이 닫힌 상태다
+  // 장사를 건너뛰는 연출이 화면을 덮고 있는 동안 true
+  const [isResting, setIsResting] = useState(false);
   // 요리를 못 받고 돌아가는 손님의 인사. 마감 때 띄운 것이면 창을 닫는 순간 단계가 넘어간다
   const [farewell, setFarewell] = useState<{
     customerName: string;
@@ -156,6 +158,8 @@ export default function PlayPage() {
         ? `${day}일차 마무리하기`
         : `${nextPhase.name} 장사 시작하기`;
 
+  const skipLabel = `${nextPhase.name} 장사 건너뛰기`;
+
   // 농사 단계에서 바로 다음이 장사일 때만 건너뛸 수 있다
   const canSkipBistro = dayPhase.kind === 'farm' && nextPhase.kind === 'bistro';
 
@@ -178,9 +182,9 @@ export default function PlayPage() {
 
   /*
    * 장사를 열지 않고 다음 농사 단계로 건너뛴다.
-   * 손님을 받지 않으므로 대기열을 짜지 않고, 시간은 두 단계만큼 흐른다.
+   * 시계 전환 대신 하얗게 덮는 연출을 쓴다. 하루를 마무리할 때와 같은 결이다.
    */
-  const skipBistro = () => setPendingPhase(phaseCount + 2);
+  const skipBistro = () => setIsResting(true);
 
   // 마감 때 띄운 인사만 창을 닫으며 단계를 넘긴다. 돌려보내기는 다음 손님으로 이어진다
   const closeFarewell = () => {
@@ -221,16 +225,22 @@ export default function PlayPage() {
   const sendAway = () => missCustomer(false);
 
   // 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
+  const applyPhase = (next: number) => {
+    // 장사를 열 때마다 손님 대기열을 새로 짠다
+    if (getDayPhase(next).kind === 'bistro') {
+      setOrders(createOrders(getOrderableRecipeIds(unlockedCrops)));
+    }
+    setPhaseCount(next);
+    // 다 자란 칸의 특별 여부를 그 자리에서 정해 둔다. 밭에 ✨로 바로 드러난다
+    setPlots(revealGrownPlots(plots, next));
+  };
+
   const applyPendingPhase = () => {
     if (pendingPhase === null) return;
 
-    // 장사를 열 때마다 손님 대기열을 새로 짠다
-    if (getDayPhase(pendingPhase).kind === 'bistro') {
-      setOrders(createOrders(getOrderableRecipeIds(unlockedCrops)));
-    }
-    setPhaseCount(pendingPhase);
-    // 다 자란 칸의 특별 여부를 그 자리에서 정해 둔다. 밭에 ✨로 바로 드러난다
-    setPlots(revealGrownPlots(plots, pendingPhase));
+    // 시계 전환의 덮개가 다 덮인 순간이라, 이때 흰 화면을 걷어야 티가 나지 않는다
+    setIsResting(false);
+    applyPhase(pendingPhase);
   };
 
   // 연출 도중 타이머가 다시 걸리지 않도록 함수를 고정해 둔다
@@ -591,12 +601,19 @@ export default function PlayPage() {
             onClick={skipBistro}
             className="min-h-12 flex-1 rounded-lg border border-neutral-300 py-3 text-sm text-neutral-600"
           >
-            장사 건너뛰기
+            {skipLabel}
           </button>
         )}
       </div>
 
       <ToastStack toasts={toasts} />
+
+      {isResting && (
+        <RestScreen
+          message="장사를 하지 않고 여유로운 시간을 보냈다"
+          onFinish={() => setPendingPhase(phaseCount + 2)}
+        />
+      )}
 
       {pendingPhase !== null && (
         <PhaseTransition

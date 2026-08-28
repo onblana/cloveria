@@ -77,6 +77,7 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
 
         {stage === 'result' && (
           <div className="space-y-4">
+            <p className="text-center text-sm text-neutral-500 my-4">{result.customerName}</p>
             <p className="rounded-lg bg-amber-50 px-4 py-3 mb-10 text-sm text-amber-900">
               “{result.comment}”
             </p>

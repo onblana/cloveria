@@ -89,7 +89,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
       {stage === 'result' && (
         <div className="relative w-full max-w-sm space-y-5 text-neutral-100">
-          <h2 className="text-center text-lg font-semibold">{shown.day}일차를 마쳤다</h2>
+          <h2 className="text-center text-lg font-semibold mb-10">{shown.day}일차를 마쳤다</h2>
 
           <dl className="space-y-2 border-y border-neutral-700 py-4 text-sm">
             <div className="flex items-center justify-between">
@@ -135,7 +135,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
 
           <button
             onClick={sleep}
-            className="min-h-12 w-full rounded-lg bg-neutral-100 py-3 text-sm font-semibold text-neutral-900"
+            className="min-h-12 mt-10 w-full rounded-lg bg-neutral-100 py-3 text-sm font-semibold text-neutral-900"
           >
             잠들기
           </button>

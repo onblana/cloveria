@@ -163,18 +163,22 @@ export function FarmView({
 
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="flex-1 text-base font-bold">
+          <h2
+            className={`flex-1 text-base font-bold ${
+              plantingCrop ? 'text-right text-sm text-green-700' : ''
+            }`}
+          >
             {plantingCrop
-              ? `씨앗 심기: ${CROPS[plantingCrop].name} (${seeds[plantingCrop].toLocaleString()}개)`
+              ? `${CROPS[plantingCrop].name} 씨앗 심는 중`
               : '텃밭'}
           </h2>
           <button
             onClick={() =>
               plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
             }
-            className={`flex-1 h-9 shrink-0 rounded-lg border px-3 text-sm ${
+            className={`flex-1 ml-7 h-9 shrink-0 rounded-lg border px-3 text-sm ${
               plantingCrop
-                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                ? 'border-neutral-300 bg-gray-50 font-semibold text-green-800'
                 : 'border-neutral-300 bg-green-800 font-bold text-white'
             }`}
           >
@@ -207,10 +211,10 @@ export function FarmView({
                 disabled={!ready}
                 className={`h-20 rounded-lg border text-xs max-h-[20vw] ${
                   !ready
-                    ? 'border-neutral-200 text-neutral-500'
+                    ? 'border-neutral-200 text-neutral-600 bg-lime-50'
                     : plot.isSpecial
-                      ? 'border-amber-400 bg-amber-50 font-semibold text-amber-800'
-                      : 'border-green-500 bg-green-50 font-semibold text-green-800'
+                      ? 'border-amber-500 bg-amber-100 font-semibold text-amber-800'
+                      : 'border-green-600 bg-green-100 font-semibold text-green-800'
                 }`}
               >
                 {ready ? (

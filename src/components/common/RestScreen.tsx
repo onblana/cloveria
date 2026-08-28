@@ -62,7 +62,7 @@ export function RestScreen({ message, onFinish }: RestScreenProps) {
 
       {/* 흰 덮개 위에 올라가는 문구 */}
       <p
-        className={`relative text-center text-lg font-semibold text-neutral-900 transition duration-1000 ${
+        className={`relative text-center text-lg font-semibold text-neutral-900 transition duration-1500 ${
           stage === 'message' ? 'opacity-100' : 'opacity-0'
         }`}
       >

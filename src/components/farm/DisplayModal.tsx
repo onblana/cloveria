@@ -144,7 +144,7 @@ export function DisplayModal({
               onClick={() => onTakeFromDisplay(index)}
               className="h-20 rounded-lg border border-amber-400 bg-amber-50 text-xs font-semibold text-amber-800"
             >
-              ✨ {CROPS[cropId].specialName}
+              ✨ {CROP_EMOJI[cropId]}
               <br />
               <span className="font-normal text-amber-600">내리기</span>
             </button>

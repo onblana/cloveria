@@ -39,6 +39,8 @@ interface BistroViewProps {
   displayCount: number;
   canCook: boolean;
   canCookSpecial: boolean;
+  /** 다른 요리라도 만들 수 있는지. 하나도 못 만들면 손님을 바꿔도 소용이 없다 */
+  canCookAny: boolean;
   onCook: (useSpecial: boolean) => void;
   /** 재료가 없어 손님을 그냥 돌려보낼 때 */
   onSendAway: () => void;
@@ -54,6 +56,7 @@ export function BistroView({
   displayCount,
   canCook,
   canCookSpecial,
+  canCookAny,
   onCook,
   onSendAway,
 }: BistroViewProps) {
@@ -149,8 +152,8 @@ export function BistroView({
             </button>
           )}
         </section>
-      ) : (
-        /* 만들 수 없다고 장사가 끝나는 것은 아니다. 이 손님만 보내고 다음 손님을 받는다 */
+      ) : canCookAny ? (
+        /* 이 손님의 요리만 못 만든다. 손님을 보내면 다음 손님은 다른 요리를 시킬 수 있다 */
         <section className="space-y-2">
           <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
             재료가 모자라 이 요리는 만들 수 없다.
@@ -162,6 +165,11 @@ export function BistroView({
             돌려보내기
           </button>
         </section>
+      ) : (
+        /* 어떤 요리도 만들 수 없다. 손님을 바꿔 봐야 소용이 없어 돌려보내기도 권하지 않는다 */
+        <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
+          요리 재료가 부족해 더 이상 장사를 할 수 없다. 농사를 더 지어야겠다.
+        </p>
       )}
     </>
   );

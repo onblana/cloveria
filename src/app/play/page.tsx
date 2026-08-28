@@ -79,7 +79,7 @@ const SAVE_DELAY_MS = 400;
 
 /** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
 /** 토스트 하나가 화면에 머무는 시간 (ms) */
-const TOAST_MS = 2000;
+const TOAST_MS = 3000;
 
 /*
  * TODO: 이 화면이 모든 상태를 들고 있어 어떤 값이 바뀌어도 하위 화면이 전부 다시 그려진다.
@@ -130,14 +130,24 @@ export default function PlayPage() {
     comment: string;
   } | null>(null);
 
-  const pushToast = useCallback((message: string) => {
-    toastId.current += 1;
-    const id = toastId.current;
-
-    // 배열 앞에 넣어 최신 알림이 맨 위에 쌓이게 한다
-    setToasts((prev) => [{ id, message }, ...prev]);
-    setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), TOAST_MS);
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  const pushToast = useCallback(
+    (message: string, kind: Toast['kind'] = 'normal') => {
+      toastId.current += 1;
+      const id = toastId.current;
+
+      // 배열 앞에 넣어 최신 알림이 맨 위에 쌓이게 한다
+      setToasts((prev) => [{ id, message, kind }, ...prev]);
+      // 눌러야 닫히는 알림은 시간이 지나도 그대로 둔다
+      if (kind === 'normal') {
+        setTimeout(() => dismissToast(id), TOAST_MS);
+      }
+    },
+    [dismissToast],
+  );
 
   const { display, setDisplay, displayCount, putOnDisplay, takeFromDisplay } = useDisplay({
     inventory,
@@ -192,11 +202,14 @@ export default function PlayPage() {
 
   /** 헛걸음한 손님과는 사이가 멀어진다. 0 아래로는 내려가지 않는다 */
   const sendCustomerHome = (customer: Customer) => {
-    setFriendship((prev) => ({
-      ...prev,
-      [customer.id]: Math.max(prev[customer.id] - FRIENDSHIP_PER_MISS, 0),
-    }));
-    pushToast(`${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.`);
+    const before = friendship[customer.id];
+    const after = Math.max(before - FRIENDSHIP_PER_MISS, 0);
+
+    setFriendship((prev) => ({ ...prev, [customer.id]: after }));
+    // TODO: 친밀도 변화 표기는 값을 확인하려고 붙인 것이다. 밸런스를 정하고 나면 지울 것
+    pushToast(
+      `${customer.name}${customer.postpositionSubject} 그냥 돌아갔다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
+    );
   };
 
   /*
@@ -394,6 +407,23 @@ export default function PlayPage() {
     };
   }, [recipe, inventory]);
 
+  /*
+   * 주문에 나올 수 있는 요리 중 하나라도 만들 수 있는지.
+   * 하나도 없으면 손님을 바꿔 봐야 소용이 없어, 오늘 장사는 여기서 접는 수밖에 없다.
+   */
+  const canCookAny = useMemo(
+    () =>
+      getOrderableRecipeIds(unlockedCrops).some((recipeId) => {
+        const entries = Object.entries(RECIPES[recipeId].ingredients) as [CropId, number][];
+
+        return (
+          entries.every(([cropId, need]) => inventory[cropId].normal >= need) ||
+          entries.every(([cropId, need]) => inventory[cropId].special >= need)
+        );
+      }),
+    [unlockedCrops, inventory],
+  );
+
   const cook = (useSpecial: boolean) => {
     if (!order || !recipe) return;
     if (useSpecial ? !canCookSpecial : !canCook) return;
@@ -444,10 +474,15 @@ export default function PlayPage() {
     const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
     setFriendship((prev) => ({ ...prev, [customer.id]: after }));
 
+    // TODO: 친밀도 변화를 보려고 띄우는 알림이다. 밸런스를 정하고 나면 이 토스트째로 지울 것
+    pushToast(
+      `${customer.name}에게 ${dishName}${recipe.postpositionObject} 냈다.\n친밀도 ${before.toLocaleString()} => ${after.toLocaleString()}`,
+    );
+
     // 정해진 단계를 넘어설 때만 한 번씩 알린다
     const message = getFriendshipMessage(customer, before, after);
     if (message) {
-      pushToast(message);
+      pushToast(message, 'milestone');
     }
   };
 
@@ -583,6 +618,7 @@ export default function PlayPage() {
           displayCount={displayCount}
           canCook={canCook}
           canCookSpecial={canCookSpecial}
+          canCookAny={canCookAny}
           onCook={cook}
           onSendAway={sendAway}
         />
@@ -609,7 +645,7 @@ export default function PlayPage() {
         )}
       </div>
 
-      <ToastStack toasts={toasts} />
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
 
       {isResting && (
         <RestScreen

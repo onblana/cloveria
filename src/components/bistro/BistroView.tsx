@@ -40,6 +40,8 @@ interface BistroViewProps {
   canCook: boolean;
   canCookSpecial: boolean;
   onCook: (useSpecial: boolean) => void;
+  /** 재료가 없어 손님을 그냥 돌려보낼 때 */
+  onSendAway: () => void;
 }
 
 /** 식당 단계(점심·저녁) 화면 */
@@ -53,6 +55,7 @@ export function BistroView({
   canCook,
   canCookSpecial,
   onCook,
+  onSendAway,
 }: BistroViewProps) {
   // 장사를 열자마자 손님이 서 있으면 어색해 잠깐 비워 둔다
   const [isWaiting, setIsWaiting] = useState(true);
@@ -147,11 +150,18 @@ export function BistroView({
           )}
         </section>
       ) : (
-        <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
-          요리 재료가 모자라 더 이상 장사를 할 수 없다.
-          <br />
-          농사를 더 지어야겠다.
-        </p>
+        /* 만들 수 없다고 장사가 끝나는 것은 아니다. 이 손님만 보내고 다음 손님을 받는다 */
+        <section className="space-y-2">
+          <p className="rounded-lg bg-white px-4 py-3 text-sm text-neutral-500">
+            재료가 모자라 이 요리는 만들 수 없다.
+          </p>
+          <button
+            onClick={onSendAway}
+            className="min-h-12 w-full rounded-lg border border-neutral-300 px-2 py-3 text-sm text-neutral-600"
+          >
+            돌려보내기
+          </button>
+        </section>
       )}
     </>
   );

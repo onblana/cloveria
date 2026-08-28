@@ -9,6 +9,7 @@ import { FarewellModal } from '@/components/bistro/FarewellModal';
 import { DayEndScreen } from '@/components/common/DayEndScreen';
 import { HeaderMenu } from '@/components/common/HeaderMenu';
 import { PhaseTransition } from '@/components/common/PhaseTransition';
+import { ToastStack, type Toast } from '@/components/common/ToastStack';
 import { useFitToScreen } from '@/components/common/useFitToScreen';
 import { useDisplay } from '@/components/farm/DisplayModal';
 import { FarmView } from '@/components/farm/FarmView';
@@ -20,6 +21,7 @@ import {
   DISPLAY_BONUS_PER_ITEM,
   FRIENDSHIP_MAX,
   FRIENDSHIP_PER_DISH,
+  FRIENDSHIP_PER_MISS,
   INITIAL_GOLD,
   INITIAL_SEEDS,
   RECIPES,
@@ -75,8 +77,8 @@ const createOrders = (recipeIds: RecipeId[]): Order[] => {
 const SAVE_DELAY_MS = 400;
 
 /** 소식 창에 남겨두는 줄 수. 맨 위가 가장 최근이고 아래로 갈수록 옅어진다 */
-const LOG_LINES = 3;
-const LOG_TONES = ['text-neutral-900', 'text-neutral-500', 'text-neutral-400'];
+/** 토스트 하나가 화면에 머무는 시간 (ms) */
+const TOAST_MS = 2000;
 
 /*
  * TODO: 이 화면이 모든 상태를 들고 있어 어떤 값이 바뀌어도 하위 화면이 전부 다시 그려진다.
@@ -104,7 +106,9 @@ export default function PlayPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   // 한 번이라도 수확해 본 작물. 여기 없는 작물이 든 요리는 주문으로 나오지 않는다
   const [unlockedCrops, setUnlockedCrops] = useState(createUnlockedCrops);
-  const [log, setLog] = useState<string[]>([]);
+  // 화면 위에 잠깐 떠오르는 알림들. 저장하지 않고 시간이 지나면 사라진다
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastId = useRef(0);
   // 손님별 친밀도. 요리를 낼 때마다 오른다
   const [friendship, setFriendship] = useState(createFriendship);
   // 오늘의 결과 화면에 보여줄 집계. 아침이 오면 비워진다
@@ -118,16 +122,26 @@ export default function PlayPage() {
   // 전환 연출이 끝나면 넘어갈 단계. null이면 연출이 돌고 있지 않다
   const [pendingPhase, setPendingPhase] = useState<number | null>(null);
   // 요리를 못 받고 돌아가는 손님의 인사. null이면 창이 닫힌 상태다
-  const [farewell, setFarewell] = useState<{ customerName: string; comment: string } | null>(null);
+  // 요리를 못 받고 돌아가는 손님의 인사. 마감 때 띄운 것이면 창을 닫는 순간 단계가 넘어간다
+  const [farewell, setFarewell] = useState<{
+    customerName: string;
+    comment: string;
+    closesShop: boolean;
+  } | null>(null);
 
-  const pushLog = useCallback((message: string) => {
-    setLog((prev) => [message, ...prev].slice(0, LOG_LINES));
+  const pushToast = useCallback((message: string) => {
+    toastId.current += 1;
+    const id = toastId.current;
+
+    // 배열 앞에 넣어 최신 알림이 맨 위에 쌓이게 한다
+    setToasts((prev) => [{ id, message }, ...prev]);
+    setTimeout(() => setToasts((prev) => prev.filter((toast) => toast.id !== id)), TOAST_MS);
   }, []);
 
   const { display, setDisplay, displayCount, putOnDisplay, takeFromDisplay } = useDisplay({
     inventory,
     setInventory,
-    pushLog,
+    pushToast,
   });
 
   const day = getDayNumber(phaseCount);
@@ -142,6 +156,9 @@ export default function PlayPage() {
         ? `${day}일차 마무리하기`
         : `${nextPhase.name} 장사 시작하기`;
 
+  // 농사 단계에서 바로 다음이 장사일 때만 건너뛸 수 있다
+  const canSkipBistro = dayPhase.kind === 'farm' && nextPhase.kind === 'bistro';
+
   // 시간은 이 버튼으로만 흐른다. 넘기는 일 자체는 전환 연출이 화면을 덮은 뒤에 일어난다
   const advancePhase = () => {
     // 밤은 곧바로 넘기지 않고 하루를 정리하는 화면을 먼저 띄운다
@@ -152,19 +169,56 @@ export default function PlayPage() {
 
     // 재료가 모자라 손님을 그냥 보내야 하면 인사를 먼저 받는다
     if (dayPhase.kind === 'bistro' && order && !canCook && !canCookSpecial) {
-      const customer = CUSTOMERS[order.customer];
-      setFarewell({ customerName: customer.name, comment: customer.missedComment });
+      missCustomer(true);
       return;
     }
 
     setPendingPhase(phaseCount + 1);
   };
 
-  // 인사를 확인하고 나서야 장사가 마감된다
+  /*
+   * 장사를 열지 않고 다음 농사 단계로 건너뛴다.
+   * 손님을 받지 않으므로 대기열을 짜지 않고, 시간은 두 단계만큼 흐른다.
+   */
+  const skipBistro = () => setPendingPhase(phaseCount + 2);
+
+  // 마감 때 띄운 인사만 창을 닫으며 단계를 넘긴다. 돌려보내기는 다음 손님으로 이어진다
   const closeFarewell = () => {
+    const closesShop = farewell?.closesShop ?? false;
+
     setFarewell(null);
-    setPendingPhase(phaseCount + 1);
+    setServedOrder(null);
+    if (closesShop) setPendingPhase(phaseCount + 1);
   };
+
+  /*
+   * 요리를 못 받은 손님을 돌려보낸다.
+   * 개별로 보내면 다음 손님을 받고, 마감으로 보내면 인사를 닫는 순간 단계가 넘어간다.
+   */
+  const missCustomer = (closesShop: boolean) => {
+    if (!order) return;
+
+    const customer = CUSTOMERS[order.customer];
+
+    // 인사가 떠 있는 동안 뒤 화면에 이 손님을 세워 둔다
+    setOrders((prev) => prev.slice(1));
+    setServedOrder(order);
+
+    // 헛걸음한 손님과는 사이가 멀어진다. 0 아래로는 내려가지 않는다
+    setFriendship((prev) => ({
+      ...prev,
+      [customer.id]: Math.max(prev[customer.id] - FRIENDSHIP_PER_MISS, 0),
+    }));
+
+    setFarewell({
+      customerName: customer.name,
+      comment: customer.missedComment,
+      closesShop,
+    });
+    pushToast(`${customer.name}을(를) 그냥 돌려보냈다.`);
+  };
+
+  const sendAway = () => missCustomer(false);
 
   // 단계가 하나 넘어갈 때 밭의 작물도 한 단계만큼 자란다
   const applyPendingPhase = () => {
@@ -188,7 +242,7 @@ export default function PlayPage() {
     setPhaseCount(next);
     setOrders([]);
     setDaily(createDailyRecord());
-    pushLog(`${getDayNumber(next)}일차 아침이 밝았다.`);
+    pushToast(`${getDayNumber(next)}일차 아침이 밝았다.`);
     // 밤을 지나며 한 단계 더 자란 뒤에 특별 여부를 판정한다
     setPlots(revealGrownPlots(growOvernight(plots), next));
   };
@@ -220,15 +274,15 @@ export default function PlayPage() {
 
         // 시작 화면이 막 만든 기록이면 도입부를, 이어서 하는 기록이면 인사를 띄운다
         if (saved.introShown) {
-          pushLog(`${saved.playerName}, 식당 문을 다시 열었다.`);
+          pushToast(`${saved.playerName}, 식당 문을 다시 열었다.`);
         } else {
-          pushLog(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
-          pushLog(`${saved.playerName}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
+          pushToast(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
+          pushToast(`${saved.playerName}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
         }
       })
       .catch(() => router.replace('/'));
     // setDisplay는 useDisplay가 돌려주는 setState라 값이 바뀌지 않는다
-  }, [pushLog, setDisplay, router]);
+  }, [pushToast, setDisplay, router]);
 
   /*
    * 저장 대상이 바뀔 때마다 기록한다.
@@ -374,7 +428,7 @@ export default function PlayPage() {
       price,
       comment: pickComment(customer, useSpecial),
     });
-    pushLog(
+    pushToast(
       useSpecial
         ? `${customer.name}에게 ${recipe.specialName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
         : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
@@ -388,7 +442,7 @@ export default function PlayPage() {
     // 정해진 단계를 넘어설 때만 한 번씩 알린다
     const message = getFriendshipMessage(customer, before, after);
     if (message) {
-      pushLog(message);
+      pushToast(message);
     }
   };
 
@@ -404,7 +458,7 @@ export default function PlayPage() {
     setGold((prev) => prev - total);
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
     setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
-    pushLog(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
+    pushToast(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
   };
 
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
@@ -423,7 +477,7 @@ export default function PlayPage() {
 
   const receiveGiftSeed = () => {
     setSeeds((prev) => ({ ...prev, [STARTER_CROP]: prev[STARTER_CROP] + 1 }));
-    pushLog('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
+    pushToast('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
   };
 
   const resetGame = () => {
@@ -465,14 +519,6 @@ export default function PlayPage() {
           </span>
         </div>
       </header>
-
-      <section className="text-xs">
-        {log.map((line, index) => (
-          <p key={`${phaseCount}-${index}-${line}`} className={LOG_TONES[index]}>
-            {line}
-          </p>
-        ))}
-      </section>
 
       {dayPhase.kind === 'farm' && (
         <FarmView
@@ -524,6 +570,7 @@ export default function PlayPage() {
           canCook={canCook}
           canCookSpecial={canCookSpecial}
           onCook={cook}
+          onSendAway={sendAway}
         />
       )}
 
@@ -531,14 +578,25 @@ export default function PlayPage() {
         내용이 짧으면 mt-auto로 화면 아래에 붙고, 길면 sticky로 아래에 떠 있는다.
         좌우로 음수 여백을 줘 배경이 화면 끝까지 덮이게 하고, 그만큼 안쪽 여백으로 되돌린다.
       */}
-      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto bg-surface px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
+      <div className="bottom-bar sticky bottom-0 -mx-2 mt-auto flex gap-2 bg-surface px-2 pt-2 sm:-mx-8 sm:px-8 sm:pt-4">
         <button
           onClick={advancePhase}
-          className="min-h-12 w-full rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
+          className="min-h-12 flex-2 rounded-lg bg-neutral-800 py-3 text-sm font-semibold text-white"
         >
           {advanceLabel}
         </button>
+        {/* 장사를 열기 직전에만, 그 장사를 통째로 넘기는 선택지를 함께 둔다 */}
+        {canSkipBistro && (
+          <button
+            onClick={skipBistro}
+            className="min-h-12 flex-1 rounded-lg border border-neutral-300 py-3 text-sm text-neutral-600"
+          >
+            장사 건너뛰기
+          </button>
+        )}
       </div>
+
+      <ToastStack toasts={toasts} />
 
       {pendingPhase !== null && (
         <PhaseTransition

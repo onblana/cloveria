@@ -16,14 +16,14 @@ import {
 interface UseDisplayOptions {
   inventory: Inventory;
   setInventory: Dispatch<SetStateAction<Inventory>>;
-  pushLog: (message: string) => void;
+  pushToast: (message: string) => void;
 }
 
 /**
  * 진열대에 올리고 내리는 상태와 동작.
  * 진열 목록은 저장 대상이자 판매가 계산에 쓰여 화면 바깥에서도 읽어야 하므로 여기서 함께 돌려준다.
  */
-export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptions) {
+export function useDisplay({ inventory, setInventory, pushToast }: UseDisplayOptions) {
   const [display, setDisplay] = useState<Display>(createEmptyDisplay);
 
   // 고른 칸에 그대로 올린다. 앞으로 당겨 채우지 않아 유저가 놓은 자리가 유지된다
@@ -35,7 +35,7 @@ export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptio
       [cropId]: { ...prev[cropId], special: prev[cropId].special - 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? cropId : slot)));
-    pushLog(`${CROPS[cropId].specialName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
+    pushToast(`${CROPS[cropId].specialName}을(를) 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
   // 내린 칸은 비워만 두고 뒤 칸을 당기지 않는다
@@ -48,7 +48,7 @@ export function useDisplay({ inventory, setInventory, pushLog }: UseDisplayOptio
       [cropId]: { ...prev[cropId], special: prev[cropId].special + 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? null : slot)));
-    pushLog(`${CROPS[cropId].specialName}을(를) 진열대에서 내렸다.`);
+    pushToast(`${CROPS[cropId].specialName}을(를) 진열대에서 내렸다.`);
   };
 
   /** 판매가 보너스는 칸 위치가 아니라 올려둔 개수로만 정해진다 */

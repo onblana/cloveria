@@ -406,6 +406,9 @@ export const FRIENDSHIP_MAX = 100;
 /** 요리 한 번에 오르는 친밀도 */
 export const FRIENDSHIP_PER_DISH = 1;
 
+/** 요리를 못 받고 돌아간 손님에게서 깎이는 친밀도 */
+export const FRIENDSHIP_PER_MISS = 2;
+
 export const createFriendship = (): Friendship =>
   Object.fromEntries(CUSTOMER_IDS.map((id) => [id, 0])) as Friendship;
 

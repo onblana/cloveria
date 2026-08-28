@@ -201,3 +201,25 @@ button {
 .phase-bistro {
   --surface: #fdf6ec;
 }
+
+/* 토스트가 위에서 살짝 내려오며 나타난다 */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.toast-item {
+  animation: toast-in 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-item {
+    animation-duration: 0.01s;
+  }
+}

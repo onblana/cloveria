@@ -380,7 +380,7 @@ export default function PlayPage() {
         : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
     );
 
-    // 요리를 하나 낼 때마다 그 손님과 가까워진다
+    // 요리를 하나 낼 때마다 친밀도가 오른다
     const before = friendship[customer.id];
     const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
     setFriendship((prev) => ({ ...prev, [customer.id]: after }));
@@ -392,8 +392,6 @@ export default function PlayPage() {
     }
   };
 
-  // 그릇을 치우면 연출 창이 닫히고 다음 손님이 들어온다
-  // 그릇을 치우는 순간 비로소 다음 손님이 화면에 선다
   const clearDishes = () => {
     setCookResult(null);
     setServedOrder(null);
@@ -442,11 +440,10 @@ export default function PlayPage() {
     <main
       ref={mainRef}
       style={{ zoom }}
-      className={`mx-auto flex min-h-screen w-full max-w-xl flex-col gap-3 bg-surface p-2 sm:gap-4 sm:p-8 ${
+      className={`mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 bg-surface p-2 sm:gap-4 sm:p-8 ${
         dayPhase.kind === 'farm' ? 'phase-farm' : 'phase-bistro'
       }`}
     >
-      {/* 좁은 화면에서 줄이 늘어나지 않도록 제목 줄과 상태 줄을 나눈다 */}
       <header className="border-b border-neutral-200 pb-3">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">{playerName}의 식당</h1>
@@ -457,7 +454,6 @@ export default function PlayPage() {
             <CoinIcon className="text-amber-500" />
             {gold}골드
           </span>
-          {/* 지금이 농사인지 장사인지 스크롤해도 여기서 확인된다 */}
           <span
             className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
               dayPhase.kind === 'farm'

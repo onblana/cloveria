@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DisplayModal } from '@/components/farm/DisplayModal';
+import { VillagerModal } from '@/components/farm/VillagerModal';
 import {
   CROPS,
   CROP_EMOJI,
   isPlotReady,
   type CropId,
   type Display,
+  type Friendship,
   type Inventory,
   type Plot,
 } from '@/lib/game/data';
@@ -34,6 +36,8 @@ interface FarmViewProps {
   plots: (Plot | null)[];
   phaseCount: number;
   inventory: Inventory;
+  /** 손님별 친밀도. 손님 목록 창에서만 쓴다 */
+  friendship: Friendship;
   /** 진열대의 칸별 내용. 비어 있는 칸은 null이다 */
   display: Display;
   cropIds: CropId[];
@@ -54,6 +58,7 @@ export function FarmView({
   plots,
   phaseCount,
   inventory,
+  friendship,
   display,
   cropIds,
   isStuck,
@@ -73,6 +78,7 @@ export function FarmView({
   // 심기 모드에 들어가며 작물을 고르는 창
   const [isSeedPickerOpen, setIsSeedPickerOpen] = useState(false);
   const [isDisplayOpen, setIsDisplayOpen] = useState(false);
+  const [isVillagersOpen, setIsVillagersOpen] = useState(false);
   // 심기·수확 연출. 같은 칸을 연달아 눌러도 겹쳐 보이도록 목록으로 들고 있는다
   const [effects, setEffects] = useState<PlotEffect[]>([]);
   const nextEffectId = useRef(0);
@@ -192,21 +198,22 @@ export function FarmView({
 
   return (
     <>
-      <div className="flex gap-2 my-4">
-        <button
-          onClick={openShop}
-          className="h-11 flex-1 rounded-lg border border-lime-400 bg-lime-200 px-3 text-sm"
-        >
-          상점
-        </button>
+      <div className="flex gap-1 my-4">
         <button
           onClick={() => setIsDisplayOpen(true)}
-          className="h-11 flex-1 rounded-lg border border-amber-300 bg-amber-200 px-3 text-sm"
+          className="h-10 flex-1 rounded-lg border border-amber-300 bg-amber-200 px-3 text-sm"
         >
           진열대
         </button>
         <button
-          className="h-11 flex-1 rounded-lg border border-sky-300 bg-sky-200 px-3 text-sm"
+          onClick={openShop}
+          className="h-10 flex-1 rounded-lg border border-lime-400 bg-lime-200 px-3 text-sm"
+        >
+          상점
+        </button>
+        <button
+          onClick={() => setIsVillagersOpen(true)}
+          className="h-10 flex-1 rounded-lg border border-sky-300 bg-sky-200 px-3 text-sm"
         >
           손님 목록
         </button>
@@ -382,6 +389,10 @@ export function FarmView({
             ))}
           </div>
         </CropPickerModal>
+      )}
+
+      {isVillagersOpen && (
+        <VillagerModal friendship={friendship} onClose={() => setIsVillagersOpen(false)} />
       )}
 
       {isDisplayOpen && (

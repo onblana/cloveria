@@ -130,6 +130,39 @@ button {
 }
 
 /*
+ * 손님 목록처럼 화면을 거의 채우는 창.
+ * dvh를 모르는 브라우저는 앞줄을 버리고 vh를 그대로 쓴다.
+ */
+.modal-tall-80 {
+  height: 80vh;
+  height: 80dvh;
+}
+
+/*
+ * 길어질 수 있는 목록 칸.
+ * 모바일 브라우저는 스크롤하는 동안에만 막대를 띄워, 더 볼 것이 있다는 걸 알기 어렵다.
+ * 그래서 막대 자리를 늘 잡아 두고 직접 그린다.
+ */
+.always-scroll {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 transparent;
+}
+
+.always-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.always-scroll::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+
+.always-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/*
  * 화면 맨 아래에 붙어 있는 버튼 줄.
  * 홈 인디케이터가 있는 기기에서 버튼이 가려지지 않도록 그 높이만큼 아래 여백을 더한다.
  * 노치가 없는 기기에서는 env() 값이 0이라 기본 여백만 남는다.

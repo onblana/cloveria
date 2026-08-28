@@ -540,6 +540,7 @@ export default function PlayPage() {
           plots={plots}
           phaseCount={phaseCount}
           inventory={inventory}
+          friendship={friendship}
           display={display}
           cropIds={CROP_IDS}
           isStuck={isStuck}

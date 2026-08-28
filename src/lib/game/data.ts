@@ -28,8 +28,6 @@ export const getDayNumber = (phaseCount: number) => Math.floor(phaseCount / PHAS
 
 export const getDayPhase = (phaseCount: number) => DAY_PHASES[phaseCount % PHASES_PER_DAY];
 
-// TODO: 마을 사람들 화면. 손님 목록과 친밀도를 한눈에 볼 수 있게 만들 것
-
 /**
  * 밭 칸 수. 5열 고정이라 칸 수가 늘면 아래로 행이 하나씩 늘어난다.
  * TODO: 상점에서 밭 확장을 사면 이 값이 커진다. 고정값 대신 저장된 확장 단계에서
@@ -471,6 +469,21 @@ const FRIENDSHIP_MILESTONES: { at: number; message: (customer: Customer) => stri
   { at: 30, message: (c) => `${c.name}${c.postpositionAnd} 조금 더 친해진 것 같다.` },
   { at: 10, message: (c) => `${c.name}${c.postpositionAnd} 약간 친해진듯 하다.` },
 ];
+
+/**
+ * 손님 목록에 함께 보여줄 친밀도 단계 이름.
+ * 기준값은 FRIENDSHIP_MILESTONES와 같다. 한쪽만 고치면 소식과 목록이 서로 어긋난다.
+ */
+const FRIENDSHIP_LABELS: { at: number; label: string }[] = [
+  { at: FRIENDSHIP_MAX, label: '단골 손님' },
+  { at: 60, label: '많이 친함' },
+  { at: 30, label: '친근해짐' },
+  { at: 10, label: '약간 친함' },
+  { at: 0, label: '낯가리는 사이' },
+];
+
+export const getFriendshipLabel = (value: number) =>
+  FRIENDSHIP_LABELS.find(({ at }) => value >= at)?.label ?? '처음';
 
 /** 친밀도가 before에서 after로 오르며 새로 넘어선 단계의 문구. 없으면 null */
 export const getFriendshipMessage = (

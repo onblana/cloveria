@@ -26,15 +26,19 @@ export function useFitToScreen<T extends HTMLElement>() {
 
     const fit = () => {
       /*
-       * getBoundingClientRect는 zoom이 반영된 높이라, 지금 배율로 나눠 원래 높이를 되돌린다.
-       * 이렇게 해야 이미 줄어든 상태에서 다시 재도 같은 값이 나와 배율이 흔들리지 않는다.
+       * getBoundingClientRect는 배율이 반영된 높이다. 원래 높이를 되돌리려면 나눠야 하는데,
+       * 나누는 값은 state가 아니라 DOM에 실제로 적용된 배율을 읽는다.
+       * state를 쓰면 아직 반영 전인 낡은 값으로 나눠 한 번 잘못 계산하고 다시 그리게 된다.
        */
-      const naturalHeight = element.getBoundingClientRect().height / zoom;
+      const applied = parseFloat(getComputedStyle(element).zoom) || 1;
+      const naturalHeight = element.getBoundingClientRect().height / applied;
       if (naturalHeight <= 0) return;
 
       // 하한을 두지 않는다. 내용이 길수록 그만큼 계속 줄여 스크롤을 만들지 않는다
       const next = Math.min(1, window.innerHeight / naturalHeight);
-      if (Math.abs(next - zoom) > EPSILON) setZoom(next);
+
+      // 차이가 미미하면 같은 값을 돌려줘 다시 그리지 않게 한다
+      setZoom((prev) => (Math.abs(next - prev) > EPSILON ? next : prev));
     };
 
     fit();
@@ -48,7 +52,8 @@ export function useFitToScreen<T extends HTMLElement>() {
       observer.disconnect();
       window.removeEventListener('resize', fit);
     };
-  }, [element, zoom]);
+    // 배율이 바뀌어도 다시 구독하지 않는다. 재는 값을 DOM에서 읽으므로 그럴 이유가 없다
+  }, [element]);
 
   return { ref: setElement, zoom };
 }

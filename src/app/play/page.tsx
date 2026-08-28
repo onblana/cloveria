@@ -437,11 +437,6 @@ export default function PlayPage() {
       price,
       comment: pickComment(customer, useSpecial),
     });
-    pushToast(
-      useSpecial
-        ? `${customer.name}에게 ${recipe.specialName}${recipe.postpositionObject} 냈다. 감탄하며 ${price.toLocaleString()}골드를 냈다!`
-        : `${customer.name}에게 ${recipe.name}${recipe.postpositionObject} 냈다. ${price.toLocaleString()}골드를 받았다.`,
-    );
 
     // 요리를 하나 낼 때마다 친밀도가 오른다
     const before = friendship[customer.id];

@@ -35,7 +35,6 @@ export function useDisplay({ inventory, setInventory, pushToast }: UseDisplayOpt
       [cropId]: { ...prev[cropId], special: prev[cropId].special - 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? cropId : slot)));
-    pushToast(`${CROPS[cropId].specialName}${CROPS[cropId].postpositionObject} 진열했다. 손님들이 눈을 떼지 못한다.`);
   };
 
   // 내린 칸은 비워만 두고 뒤 칸을 당기지 않는다
@@ -48,7 +47,6 @@ export function useDisplay({ inventory, setInventory, pushToast }: UseDisplayOpt
       [cropId]: { ...prev[cropId], special: prev[cropId].special + 1 },
     }));
     setDisplay((prev) => prev.map((slot, i) => (i === index ? null : slot)));
-    pushToast(`${CROPS[cropId].specialName}${CROPS[cropId].postpositionObject} 진열대에서 내렸다.`);
   };
 
   /** 판매가 보너스는 칸 위치가 아니라 올려둔 개수로만 정해진다 */

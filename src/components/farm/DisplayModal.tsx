@@ -97,19 +97,23 @@ export function DisplayModal({
         onBack={() => setPickerSlot(null)}
         onClose={onClose}
       >
-        {cropIds.map((cropId) => (
-          <button
-            key={cropId}
-            onClick={() => putOnDisplay(cropId)}
-            disabled={inventory[cropId].special <= 0}
-            className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm disabled:opacity-40"
-          >
-            <span>
-              {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].specialName}
-            </span>
-            <span className="tabular-nums text-neutral-500">{inventory[cropId].special}개</span>
-          </button>
-        ))}
+        <div className="grid grid-cols-2 gap-2">
+          {cropIds.map((cropId) => (
+            <button
+              key={cropId}
+              onClick={() => putOnDisplay(cropId)}
+              disabled={inventory[cropId].special <= 0}
+              className="flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40"
+            >
+              <span>
+                {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].specialName}
+              </span>
+              <span className="text-xs tabular-nums text-neutral-500">
+                {inventory[cropId].special}개
+              </span>
+            </button>
+          ))}
+        </div>
       </CropPickerModal>
     );
   }

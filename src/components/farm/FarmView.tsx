@@ -54,8 +54,10 @@ export function FarmView({
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [shopCrop, setShopCrop] = useState<CropId | null>(null);
   const [seedQty, setSeedQty] = useState(1);
-  // 심을 작물을 고르는 중인 밭 칸. null이면 창이 닫힌 상태다
-  const [plantTarget, setPlantTarget] = useState<number | null>(null);
+  // 심기 모드에서 계속 심을 작물. null이면 심기 모드가 아니다
+  const [plantingCrop, setPlantingCrop] = useState<CropId | null>(null);
+  // 심기 모드에 들어가며 작물을 고르는 창
+  const [isSeedPickerOpen, setIsSeedPickerOpen] = useState(false);
   const [isDisplayOpen, setIsDisplayOpen] = useState(false);
 
   const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
@@ -77,11 +79,28 @@ export function FarmView({
     setShopCrop(null);
   };
 
-  const plant = (cropId: CropId) => {
-    if (plantTarget === null || seeds[cropId] <= 0) return;
+  // 고른 작물을 들고 심기 모드로 들어간다
+  const chooseCrop = (cropId: CropId) => {
+    if (seeds[cropId] <= 0) return;
 
-    onPlant(plantTarget, cropId);
-    setPlantTarget(null);
+    setPlantingCrop(cropId);
+    setIsSeedPickerOpen(false);
+  };
+
+  /*
+   * 빈 밭은 심기 모드에서 씨앗을 들고 있을 때만 반응한다.
+   * 그 밖에는 아무 일도 하지 않아, 밭을 누르다 창이 열리는 일이 없다.
+   */
+  const tapEmptyPlot = (index: number) => {
+    if (!plantingCrop) return;
+
+    // 씨앗이 떨어지면 더 심을 수 없으니 심기 모드를 끝낸다
+    if (seeds[plantingCrop] <= 0) {
+      setPlantingCrop(null);
+      return;
+    }
+
+    onPlant(index, plantingCrop);
   };
 
   return (
@@ -102,7 +121,25 @@ export function FarmView({
       </div>
 
       <section>
-        <h2 className="mb-2 text-base font-bold">텃밭</h2>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-base font-bold">
+            {plantingCrop
+              ? `씨앗 심기: ${CROPS[plantingCrop].name} (${seeds[plantingCrop]}개)`
+              : '텃밭'}
+          </h2>
+          <button
+            onClick={() =>
+              plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
+            }
+            className={`h-11 shrink-0 rounded-lg border px-3 text-sm ${
+              plantingCrop
+                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                : 'border-neutral-300'
+            }`}
+          >
+            {plantingCrop ? '씨앗 심기 끝' : '🌱 씨앗 심기'}
+          </button>
+        </div>
         {/* 5열 고정. 밭 확장으로 칸이 늘면 아래로 행이 하나씩 늘어난다 */}
         <div className="grid grid-cols-5 gap-1">
           {plots.map((plot, index) => {
@@ -110,12 +147,10 @@ export function FarmView({
               return (
                 <button
                   key={index}
-                  onClick={() => setPlantTarget(index)}
+                  onClick={() => tapEmptyPlot(index)}
                   className="h-20 rounded-lg border border-soil-edge bg-soil text-xs text-soil-text max-h-[20vw]"
                 >
                   빈 밭
-                  <br />
-                  심기
                 </button>
               );
             }
@@ -177,24 +212,27 @@ export function FarmView({
           description={`가진 골드 ${gold}골드`}
           onClose={() => setIsShopOpen(false)}
         >
-          {cropIds.map((cropId) => (
-            <button
-              key={cropId}
-              onClick={() => setShopCrop(cropId)}
-              className={`flex min-h-12 w-full items-center justify-between rounded-lg border px-4 text-sm ${
-                shopCrop === cropId
-                  ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                  : 'border-neutral-300'
-              }`}
-            >
-              <span>
-                {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-              </span>
-              <span className="tabular-nums text-neutral-500">
-                {CROPS[cropId].seedPrice}골드 · 보유 {seeds[cropId]}개
-              </span>
-            </button>
-          ))}
+          {/* 작물이 늘어도 목록이 길어지지 않도록 2열로 채운다 */}
+          <div className="grid grid-cols-2 gap-2">
+            {cropIds.map((cropId) => (
+              <button
+                key={cropId}
+                onClick={() => setShopCrop(cropId)}
+                className={`flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border px-3 py-2 text-sm ${
+                  shopCrop === cropId
+                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                    : 'border-neutral-300'
+                }`}
+              >
+                <span>
+                  {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+                </span>
+                <span className="text-xs tabular-nums text-neutral-500">
+                  {CROPS[cropId].seedPrice}골드 · 보유 {seeds[cropId]}개
+                </span>
+              </button>
+            ))}
+          </div>
 
           {/* 작물을 고르기 전에는 살 수량을 정할 수 없다 */}
           <div className="flex items-center gap-2 pt-1">
@@ -223,25 +261,29 @@ export function FarmView({
         </CropPickerModal>
       )}
 
-      {plantTarget !== null && (
+      {isSeedPickerOpen && (
         <CropPickerModal
           title="심을 작물 고르기"
           description="씨앗이 있는 작물만 심을 수 있다"
-          onClose={() => setPlantTarget(null)}
+          onClose={() => setIsSeedPickerOpen(false)}
         >
-          {cropIds.map((cropId) => (
-            <button
-              key={cropId}
-              onClick={() => plant(cropId)}
-              disabled={seeds[cropId] <= 0}
-              className="flex min-h-12 w-full items-center justify-between rounded-lg border border-neutral-300 px-4 text-sm disabled:opacity-40"
-            >
-              <span>
-                {CROP_EMOJI[cropId]} {CROPS[cropId].name}
-              </span>
-              <span className="tabular-nums text-neutral-500">씨앗 {seeds[cropId]}개</span>
-            </button>
-          ))}
+          <div className="grid grid-cols-2 gap-2">
+            {cropIds.map((cropId) => (
+              <button
+                key={cropId}
+                onClick={() => chooseCrop(cropId)}
+                disabled={seeds[cropId] <= 0}
+                className="flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40"
+              >
+                <span>
+                  {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+                </span>
+                <span className="text-xs tabular-nums text-neutral-500">
+                  씨앗 {seeds[cropId]}개
+                </span>
+              </button>
+            ))}
+          </div>
         </CropPickerModal>
       )}
 

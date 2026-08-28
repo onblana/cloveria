@@ -526,6 +526,12 @@ export default function PlayPage() {
 
       {dayPhase.kind === 'farm' && (
         <FarmView
+          /*
+           * 단계가 넘어가면 심기 모드와 상점 상태를 처음으로 되돌린다.
+           * 밤과 다음날 아침은 둘 다 농사 단계라 이 화면이 그대로 남아,
+           * 놔두면 잠든 뒤에도 어제 고른 씨앗을 계속 들고 있는 것처럼 보인다.
+           */
+          key={phaseCount}
           gold={gold}
           seeds={seeds}
           plots={plots}

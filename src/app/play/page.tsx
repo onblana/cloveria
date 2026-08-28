@@ -608,7 +608,7 @@ export default function PlayPage() {
 
       {isResting && (
         <RestScreen
-          message="장사를 쉬었다"
+          message={`${nextPhase.name} 장사를 쉬었다`}
           onFinish={() => setPendingPhase(phaseCount + 2)}
         />
       )}

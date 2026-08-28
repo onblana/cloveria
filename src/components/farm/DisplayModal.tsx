@@ -109,7 +109,7 @@ export function DisplayModal({
                 {CROP_EMOJI[cropId]} ✨ {CROPS[cropId].specialName}
               </span>
               <span className="text-xs tabular-nums text-neutral-500">
-                {inventory[cropId].special}개
+                {inventory[cropId].special.toLocaleString()}개
               </span>
             </button>
           ))}

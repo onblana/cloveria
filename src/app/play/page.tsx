@@ -286,7 +286,7 @@ export default function PlayPage() {
         if (saved.introShown) {
           pushToast(`${saved.playerName}, 식당 문을 다시 열었다.`);
         } else {
-          pushToast(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS}개를 건넸다.`);
+          pushToast(`요정이 ${CROPS[STARTER_CROP].name} 씨앗 ${INITIAL_SEEDS.toLocaleString()}개를 건넸다.`);
           pushToast(`${saved.playerName}, 할머니가 남겨주신 낡은 식당에 도착했다.`);
         }
       })
@@ -440,8 +440,8 @@ export default function PlayPage() {
     });
     pushToast(
       useSpecial
-        ? `${customer.name}에게 ${recipe.specialName}을(를) 냈다. 감탄하며 ${price}골드를 냈다!`
-        : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price}골드를 받았다.`,
+        ? `${customer.name}에게 ${recipe.specialName}을(를) 냈다. 감탄하며 ${price.toLocaleString()}골드를 냈다!`
+        : `${customer.name}에게 ${recipe.name}을(를) 냈다. ${price.toLocaleString()}골드를 받았다.`,
     );
 
     // 요리를 하나 낼 때마다 친밀도가 오른다
@@ -468,7 +468,7 @@ export default function PlayPage() {
     setGold((prev) => prev - total);
     setSeeds((prev) => ({ ...prev, [cropId]: prev[cropId] + qty }));
     setDaily((prev) => ({ ...prev, spent: prev.spent + total }));
-    pushToast(`${CROPS[cropId].name} 씨앗 ${qty}개를 ${total}골드에 샀다.`);
+    pushToast(`${CROPS[cropId].name} 씨앗 ${qty.toLocaleString()}개를 ${total.toLocaleString()}골드에 샀다.`);
   };
 
   // 씨앗도 재료도 골드도 없고 자라는 작물마저 없으면 진행이 막히므로, 요정이 씨앗을 준다
@@ -516,7 +516,7 @@ export default function PlayPage() {
         <div className="flex items-center gap-4 text-sm text-neutral-600">
           <span className="flex items-center gap-1">
             <CoinIcon className="text-amber-500" />
-            {gold}골드
+            {gold.toLocaleString()}골드
           </span>
           <span
             className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
@@ -554,10 +554,10 @@ export default function PlayPage() {
         {CROP_IDS.map((cropId) => (
           <div key={cropId} className="flex flex-wrap items-center gap-4">
             <span>
-              {CROPS[cropId].name} {inventory[cropId].normal}개
+              {CROPS[cropId].name} {inventory[cropId].normal.toLocaleString()}개
             </span>
             <span className="text-amber-700">
-              ✨ {CROPS[cropId].specialName} {inventory[cropId].special}개
+              ✨ {CROPS[cropId].specialName} {inventory[cropId].special.toLocaleString()}개
             </span>
           </div>
         ))}

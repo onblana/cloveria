@@ -84,14 +84,14 @@ export function CookingModal({ result, onClear }: CookingModalProps) {
             <div className="space-y-1 text-center text-sm">
               {result.displayBonus > 0 && (
                 <p className="text-neutral-800">
-                  {result.basePrice}골드
+                  {result.basePrice.toLocaleString()}골드
                   <br />
                   <span className="font-semibold text-amber-600">
-                    + 진열대 보너스 {result.displayBonus}골드
+                    + 진열대 보너스 {result.displayBonus.toLocaleString()}골드
                   </span>
                 </p>
               )}
-              <p className="font-semibold mt-2">{result.price}골드를 얻었다!</p>
+              <p className="font-semibold mt-2">{result.price.toLocaleString()}골드를 얻었다!</p>
             </div>
             <button
               onClick={onClear}

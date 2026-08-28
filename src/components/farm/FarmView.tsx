@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DisplayModal } from '@/components/farm/DisplayModal';
@@ -13,6 +13,11 @@ import {
   type Inventory,
   type Plot,
 } from '@/lib/game/data';
+
+/** 수량 버튼을 길게 눌렀다고 판단하기까지의 시간 (ms) */
+const REPEAT_DELAY = 400;
+/** 길게 누르는 동안 수량이 한 칸씩 바뀌는 간격 (ms) */
+const REPEAT_INTERVAL = 100;
 
 interface FarmViewProps {
   gold: number;
@@ -60,8 +65,44 @@ export function FarmView({
   const [isSeedPickerOpen, setIsSeedPickerOpen] = useState(false);
   const [isDisplayOpen, setIsDisplayOpen] = useState(false);
 
+  // 길게 누르기용 타이머. 누르기 시작한 뒤의 대기와 그 뒤의 반복을 따로 잡는다
+  const delayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const repeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
   const canBuy = shopCrop !== null && gold >= seedTotal;
+
+  const changeQty = (diff: number) => setSeedQty((q) => Math.max(q + diff, 1));
+
+  const stopRepeat = () => {
+    if (delayTimer.current) clearTimeout(delayTimer.current);
+    if (repeatTimer.current) clearInterval(repeatTimer.current);
+    delayTimer.current = null;
+    repeatTimer.current = null;
+  };
+
+  /*
+   * 누르는 즉시 한 칸 바꾸고, 계속 누르고 있으면 잠시 뒤부터 알아서 이어 바뀐다.
+   * 손을 떼는 곳이 버튼 밖이어도 멈추도록 정지는 창 전체에서 받는다.
+   */
+  const startRepeat = (diff: number) => {
+    stopRepeat();
+    changeQty(diff);
+    delayTimer.current = setTimeout(() => {
+      repeatTimer.current = setInterval(() => changeQty(diff), REPEAT_INTERVAL);
+    }, REPEAT_DELAY);
+  };
+
+  useEffect(() => {
+    window.addEventListener('pointerup', stopRepeat);
+    window.addEventListener('pointercancel', stopRepeat);
+
+    return () => {
+      window.removeEventListener('pointerup', stopRepeat);
+      window.removeEventListener('pointercancel', stopRepeat);
+      stopRepeat();
+    };
+  }, []);
 
   const openShop = () => {
     // 창을 열 때마다 고른 작물과 수량을 초기 상태로 되돌린다
@@ -124,7 +165,7 @@ export function FarmView({
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="flex-1 text-base font-bold">
             {plantingCrop
-              ? `씨앗 심기: ${CROPS[plantingCrop].name} (${seeds[plantingCrop]}개)`
+              ? `씨앗 심기: ${CROPS[plantingCrop].name} (${seeds[plantingCrop].toLocaleString()}개)`
               : '텃밭'}
           </h2>
           <button
@@ -209,7 +250,7 @@ export function FarmView({
       {isShopOpen && (
         <CropPickerModal
           title="씨앗 상점"
-          description={`가진 골드 ${gold}골드`}
+          description={`가진 골드 ${gold.toLocaleString()}골드`}
           onClose={() => setIsShopOpen(false)}
         >
           {/* 작물이 늘어도 목록이 길어지지 않도록 2열로 채운다 */}
@@ -228,34 +269,36 @@ export function FarmView({
                   {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                 </span>
                 <span className="text-xs tabular-nums text-neutral-500">
-                  {CROPS[cropId].seedPrice}골드 · 보유 {seeds[cropId]}개
+                  {CROPS[cropId].seedPrice.toLocaleString()}골드 · 보유{' '}
+                  {seeds[cropId].toLocaleString()}개
                 </span>
               </button>
             ))}
           </div>
 
-          {/* 작물을 고르기 전에는 살 수량을 정할 수 없다 */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={() => setSeedQty((q) => Math.max(q - 1, 1))}
-              disabled={seedQty <= 1}
-              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
-            >
-              −
-            </button>
-            <span className="w-8 text-center tabular-nums">{seedQty}</span>
-            <button
-              onClick={() => setSeedQty((q) => q + 1)}
-              className="h-11 w-11 shrink-0 rounded-lg border border-neutral-300 text-lg"
-            >
-              +
-            </button>
+          <div className="grid grid-cols-2 gap-2 py-6">
+            <div className="flex gap-1">
+              <button
+                onPointerDown={() => startRepeat(-1)}
+                disabled={seedQty <= 1}
+                className="h-11 w-11 shrink-0 select-none touch-manipulation rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
+              >
+                −
+              </button>
+              <span className="w-full my-auto text-center tabular-nums">{seedQty.toLocaleString()}</span>
+              <button
+                onPointerDown={() => startRepeat(1)}
+                className="h-11 w-11 shrink-0 select-none touch-manipulation rounded-lg border border-neutral-300 text-lg"
+              >
+                +
+              </button>
+            </div>
             <button
               onClick={buy}
               disabled={!canBuy}
               className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
             >
-              {shopCrop ? `${seedTotal}골드에 사기` : '작물 선택'}
+              {shopCrop ? `${seedTotal.toLocaleString()}골드에 사기` : '작물 선택'}
             </button>
           </div>
         </CropPickerModal>
@@ -279,7 +322,7 @@ export function FarmView({
                   {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                 </span>
                 <span className="text-xs tabular-nums text-neutral-500">
-                  씨앗 {seeds[cropId]}개
+                  씨앗 {seeds[cropId].toLocaleString()}개
                 </span>
               </button>
             ))}

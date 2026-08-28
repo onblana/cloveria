@@ -124,7 +124,7 @@ export function BistroView({
         <p className="mt-1 text-sm text-green-700">
           요리 재료:{' '}
           {(Object.entries(recipe.ingredients) as [CropId, number][])
-            .map(([cropId, need]) => `${CROPS[cropId].name} ${need}개 필요`)
+            .map(([cropId, need]) => `${CROPS[cropId].name} ${need.toLocaleString()}개 필요`)
             .join(', ')}
           {displayCount > 0 && ` · 진열 보너스 +${getDisplayBonusPercent(displayCount)}%`}
         </p>

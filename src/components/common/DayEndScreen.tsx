@@ -94,11 +94,11 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
           <dl className="space-y-2 border-y border-neutral-700 py-4 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-neutral-300">장사로 번 돈</dt>
-              <dd className="tabular-nums text-amber-300">+{shown.record.earned}골드</dd>
+              <dd className="tabular-nums text-amber-300">+{shown.record.earned.toLocaleString()}골드</dd>
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-neutral-300">오늘 쓴 돈</dt>
-              <dd className="tabular-nums text-neutral-200">−{shown.record.spent}골드</dd>
+              <dd className="tabular-nums text-neutral-200">−{shown.record.spent.toLocaleString()}골드</dd>
             </div>
           </dl>
 
@@ -116,7 +116,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
                         <span>
                           {CROP_EMOJI[cropId]} {CROPS[cropId].name}
                         </span>
-                        <span className="tabular-nums text-neutral-200">{normal}개</span>
+                        <span className="tabular-nums text-neutral-200">{normal.toLocaleString()}개</span>
                       </span>
                     )}
                     {special > 0 && (
@@ -124,7 +124,7 @@ export function DayEndScreen({ day, record, cropIds, onWake, onFinish }: DayEndS
                         <span className="text-amber-300">
                           ✨{CROP_EMOJI[cropId]} {CROPS[cropId].specialName}
                         </span>
-                        <span className="tabular-nums text-amber-300">{special}개</span>
+                        <span className="tabular-nums text-amber-300">{special.toLocaleString()}개</span>
                       </span>
                     )}
                   </li>

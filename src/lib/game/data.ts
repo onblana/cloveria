@@ -438,10 +438,10 @@ export type Friendship = Record<CustomerId, number>;
 
 export const FRIENDSHIP_MAX = 100;
 /** 요리 한 번에 오르는 친밀도 */
-export const FRIENDSHIP_PER_DISH = 1;
+export const FRIENDSHIP_PER_DISH = 2;
 
 /** 요리를 못 받고 돌아간 손님에게서 깎이는 친밀도 */
-export const FRIENDSHIP_PER_MISS = 2;
+export const FRIENDSHIP_PER_MISS = 4;
 
 export const createFriendship = (): Friendship =>
   Object.fromEntries(CUSTOMER_IDS.map((id) => [id, 0])) as Friendship;
@@ -463,9 +463,9 @@ export const getGreeting = (customer: Customer, friendship: number): string => {
 const FRIENDSHIP_MILESTONES: { at: number; message: (customer: Customer) => string }[] = [
   {
     at: FRIENDSHIP_MAX,
-    message: (c) => `${c.name}${c.postpositionTopic} 우리 식당의 오래된 단골 손님이다.`,
+    message: (c) => `${c.name}${c.postpositionTopic} 손님이기 전에 나의 친구다.`,
   },
-  { at: 60, message: (c) => `${c.name}${c.postpositionAnd} 많이 친해졌다.` },
+  { at: 60, message: (c) => `${c.name}${c.postpositionTopic} 우리 식당의 오래된 단골 손님이다.` },
   { at: 30, message: (c) => `${c.name}${c.postpositionAnd} 조금 더 친해진 것 같다.` },
   { at: 10, message: (c) => `${c.name}${c.postpositionAnd} 약간 친해진듯 하다.` },
 ];
@@ -475,11 +475,11 @@ const FRIENDSHIP_MILESTONES: { at: number; message: (customer: Customer) => stri
  * 기준값은 FRIENDSHIP_MILESTONES와 같다. 한쪽만 고치면 소식과 목록이 서로 어긋난다.
  */
 const FRIENDSHIP_LABELS: { at: number; label: string }[] = [
-  { at: FRIENDSHIP_MAX, label: '단골 손님' },
-  { at: 60, label: '많이 친함' },
-  { at: 30, label: '친근해짐' },
-  { at: 10, label: '약간 친함' },
-  { at: 0, label: '낯가리는 사이' },
+  { at: FRIENDSHIP_MAX, label: '오래된 친구' },
+  { at: 60, label: '단골 손님' },
+  { at: 30, label: '친한 사이' },
+  { at: 10, label: '안부를 묻는 사이' },
+  { at: 0, label: '인사하는 사이' },
 ];
 
 export const getFriendshipLabel = (value: number) =>
@@ -509,7 +509,7 @@ export const createUnlockedCrops = (): CropId[] => [STARTER_CROP];
 
 /**
  * 지금 주문으로 나올 수 있는 요리.
- * 아직 거둬 본 적 없는 작물이 들어간 요리는 만들 길이 없어 주문에서 뺀다.
+ * 아직 수확한 적 없는 작물이 들어간 요리는 만들 수 없어 주문에서 뺀다.
  */
 export const getOrderableRecipeIds = (unlockedCrops: CropId[]): RecipeId[] =>
   RECIPE_IDS.filter((recipeId) =>

@@ -314,7 +314,6 @@ export function FarmView({
           description={`가진 골드: ${gold.toLocaleString()}골드`}
           onClose={() => setIsShopOpen(false)}
         >
-          {/* 작물이 늘어도 목록이 길어지지 않도록 2열로 채운다 */}
           <div className="grid grid-cols-2 gap-2">
             {cropIds.map((cropId) => (
               <button
@@ -327,7 +326,7 @@ export function FarmView({
                 }`}
               >
                 <span>
-                  {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+                  {CROP_EMOJI[cropId]} {CROPS[cropId].name} 씨앗
                 </span>
                 <span className="text-xs tabular-nums text-neutral-500">
                   {CROPS[cropId].seedPrice.toLocaleString()}골드 · 보유{' '}
@@ -368,10 +367,9 @@ export function FarmView({
       {isSeedPickerOpen && (
         <CropPickerModal
           title="심을 작물 고르기"
-          description="씨앗이 있는 작물만 심을 수 있다"
           onClose={() => setIsSeedPickerOpen(false)}
         >
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 mb-6">
             {cropIds.map((cropId) => (
               <button
                 key={cropId}
@@ -380,10 +378,10 @@ export function FarmView({
                 className="flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40"
               >
                 <span>
-                  {CROP_EMOJI[cropId]} {CROPS[cropId].name}
+                  {CROP_EMOJI[cropId]} {CROPS[cropId].name} 씨앗
                 </span>
-                <span className="text-xs tabular-nums text-neutral-500">
-                  씨앗 {seeds[cropId].toLocaleString()}개
+                <span className="mt-1 text-right tabular-nums text-neutral-600">
+                  보유 {seeds[cropId].toLocaleString()}개
                 </span>
               </button>
             ))}

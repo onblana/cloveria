@@ -102,16 +102,16 @@ export function FarmView({
       </div>
 
       <section>
-        <h2 className="mb-2 text-base font-bold">밭</h2>
+        <h2 className="mb-2 text-base font-bold">텃밭</h2>
         {/* 5열 고정. 밭 확장으로 칸이 늘면 아래로 행이 하나씩 늘어난다 */}
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-1">
           {plots.map((plot, index) => {
             if (!plot) {
               return (
                 <button
                   key={index}
                   onClick={() => setPlantTarget(index)}
-                  className="h-20 rounded-lg border border-soil-edge bg-soil text-xs text-soil-text"
+                  className="h-20 rounded-lg border border-soil-edge bg-soil text-xs text-soil-text max-h-[20vw]"
                 >
                   빈 밭
                   <br />
@@ -129,7 +129,7 @@ export function FarmView({
                 key={index}
                 onClick={() => onHarvest(index)}
                 disabled={!ready}
-                className={`h-20 rounded-lg border text-xs ${
+                className={`h-20 rounded-lg border text-xs max-h-[20vw] ${
                   !ready
                     ? 'border-neutral-200 text-neutral-500'
                     : plot.isSpecial

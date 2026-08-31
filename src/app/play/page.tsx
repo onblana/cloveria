@@ -22,6 +22,7 @@ import {
   DISPLAY_BONUS_PER_ITEM,
   FRIENDSHIP_MAX,
   FRIENDSHIP_PER_DISH,
+  FRIENDSHIP_PER_SPECIAL_DISH,
   FRIENDSHIP_PER_MISS,
   INITIAL_GOLD,
   INITIAL_SEEDS,
@@ -473,9 +474,10 @@ export default function PlayPage() {
       comment: pickComment(customer, useSpecial),
     });
 
-    // 요리를 하나 낼 때마다 친밀도가 오른다
+    // 요리를 하나 낼 때마다 친밀도가 오른다. 특별 요리는 오르는 폭이 훨씬 크다
     const before = friendship[customer.id];
-    const after = Math.min(before + FRIENDSHIP_PER_DISH, FRIENDSHIP_MAX);
+    const gain = useSpecial ? FRIENDSHIP_PER_SPECIAL_DISH : FRIENDSHIP_PER_DISH;
+    const after = Math.min(before + gain, FRIENDSHIP_MAX);
     setFriendship((prev) => ({ ...prev, [customer.id]: after }));
 
     // TODO: 친밀도 변화를 보려고 띄우는 알림이다. 밸런스를 정하고 나면 이 줄째로 지울 것

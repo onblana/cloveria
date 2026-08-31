@@ -440,8 +440,15 @@ export const FRIENDSHIP_MAX = 100;
 /** 요리 한 번에 오르는 친밀도 */
 export const FRIENDSHIP_PER_DISH = 2;
 
+/**
+ * 특별 요리 한 번에 오르는 친밀도.
+ * 특별 작물은 어쩌다 한 번 나오는 것이라, 값이 비싼 것만으로는 아껴 둘 이유가 약하다.
+ * 사이가 크게 가까워지는 쪽으로 보상을 몰아 준다.
+ */
+export const FRIENDSHIP_PER_SPECIAL_DISH = 10;
+
 /** 요리를 못 받고 돌아간 손님에게서 깎이는 친밀도 */
-export const FRIENDSHIP_PER_MISS = 4;
+export const FRIENDSHIP_PER_MISS = 2;
 
 export const createFriendship = (): Friendship =>
   Object.fromEntries(CUSTOMER_IDS.map((id) => [id, 0])) as Friendship;

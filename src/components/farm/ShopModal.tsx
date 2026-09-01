@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { Modal } from '@/components/common/Modal';
 import { CROPS, CROP_EMOJI, type CropId } from '@/lib/game/data';
 
 /** 수량 버튼을 길게 눌렀다고 판단하기까지의 시간 (ms) */
@@ -72,9 +72,9 @@ export function ShopModal({ gold, seeds, cropIds, onBuySeed, onClose }: ShopModa
   };
 
   return (
-    <CropPickerModal
+    <Modal
       title="상점"
-      description={` 골드: ${gold.toLocaleString()}골드`}
+      description={`보유 골드: ${gold.toLocaleString()}골드`}
       onClose={onClose}
     >
       <div className="grid grid-cols-3 gap-1">
@@ -98,9 +98,29 @@ export function ShopModal({ gold, seeds, cropIds, onBuySeed, onClose }: ShopModa
             </span>
           </button>
         ))}
+        {cropIds.map((cropId) => (
+          <button
+            key={cropId}
+            onClick={() => setShopCrop(cropId)}
+            className={`flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border px-3 py-2 text-sm ${
+              shopCrop === cropId
+                ? 'border-green-500 bg-green-50 font-semibold text-green-800'
+                : 'border-neutral-300'
+            }`}
+          >
+            <span className="text-xs">
+              <span className="text-lg">{CROP_EMOJI[cropId]}</span><br />
+              {CROPS[cropId].name} 씨앗
+            </span>
+            <span className="text-xs w-full text-center tabular-nums text-neutral-500">
+              개당 {CROPS[cropId].seedPrice.toLocaleString()}골드<br />
+              {seeds[cropId].toLocaleString()}개 보유
+            </span>
+          </button>
+        ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <button
           onPointerDown={() => startRepeat(-1)}
           disabled={seedQty <= 1}
@@ -120,18 +140,18 @@ export function ShopModal({ gold, seeds, cropIds, onBuySeed, onClose }: ShopModa
         <button
           onClick={() => setSeedQty(maxSeedQty)}
           disabled={shopCrop === null}
-          className="h-11 shrink-0 rounded-lg border border-neutral-300 px-2 text-xs disabled:opacity-40"
+          className="h-11 rounded-lg border border-neutral-300 px-3 text-sm disabled:opacity-40"
         >
-          최대
+          최대 수량
         </button>
       </div>
       <button
         onClick={buy}
         disabled={!canBuy}
-        className="h-11 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
+        className="h-11 min-w-50 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
       >
         {shopCrop ? `${seedTotal.toLocaleString()}골드에 사기` : '작물 선택'}
       </button>
-    </CropPickerModal>
+    </Modal>
   );
 }

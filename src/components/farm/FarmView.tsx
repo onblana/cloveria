@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 
-import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { Modal } from '@/components/common/Modal';
 import { DisplayModal } from '@/components/farm/DisplayModal';
 import { ShopModal } from '@/components/farm/ShopModal';
 import { VillagerModal } from '@/components/farm/VillagerModal';
@@ -257,7 +257,7 @@ export function FarmView({
       )}
 
       {isSeedPickerOpen && (
-        <CropPickerModal
+        <Modal
           title="심을 작물 고르기"
           onClose={() => setIsSeedPickerOpen(false)}
         >
@@ -278,7 +278,7 @@ export function FarmView({
               </button>
             ))}
           </div>
-        </CropPickerModal>
+        </Modal>
       )}
 
       {isVillagersOpen && (

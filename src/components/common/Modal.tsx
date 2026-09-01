@@ -2,28 +2,28 @@
 
 import type { ReactNode } from 'react';
 
-interface CropPickerModalProps {
+interface ModalProps {
   title: string;
   /** 제목 아래 한 줄 안내. 없으면 표시하지 않는다 */
   description?: string;
   /** 이전 단계로 돌아가는 창일 때만 넘긴다. 없으면 뒤로가기 버튼을 감춘다 */
   onBack?: () => void;
   onClose: () => void;
-  /** 고를 항목 목록. 화면마다 조건이 달라 목록 자체는 바깥에서 넘긴다 */
+  /** 창 안에 담을 내용. 화면마다 달라 바깥에서 넘긴다 */
   children: ReactNode;
 }
 
 /**
- * 작물을 고르는 창의 껍데기.
- * 씨앗 구매와 진열이 같은 모양을 쓰되 안에 담기는 항목만 달라진다.
+ * 화면을 덮는 창의 껍데기.
+ * 제목·닫기 버튼과 배경만 맡고, 안에 담기는 내용은 쓰는 쪽에서 정한다.
  */
-export function CropPickerModal({
+export function Modal({
   title,
   description,
   onBack,
   onClose,
   children,
-}: CropPickerModalProps) {
+}: ModalProps) {
   return (
     <div className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
       {/* 바깥을 눌러도 닫히도록 오버레이 자체를 버튼으로 둔다 */}

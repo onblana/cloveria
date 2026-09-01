@@ -2,7 +2,7 @@
 
 import { useState, type Dispatch, type SetStateAction } from 'react';
 
-import { CropPickerModal } from '@/components/common/CropPickerModal';
+import { Modal } from '@/components/common/Modal';
 import {
   CROPS,
   CROP_EMOJI,
@@ -89,7 +89,7 @@ export function DisplayModal({
 
   if (pickerSlot !== null) {
     return (
-      <CropPickerModal
+      <Modal
         title={`${pickerSlot + 1}번 칸에 올릴 작물 고르기`}
         description="특별한 작물만 진열할 수 있다"
         onBack={() => setPickerSlot(null)}
@@ -112,12 +112,12 @@ export function DisplayModal({
             </button>
           ))}
         </div>
-      </CropPickerModal>
+      </Modal>
     );
   }
 
   return (
-    <CropPickerModal
+    <Modal
       title="진열대"
       description={`진열해두면 요리가 비싸게 팔린다 (개당 +${getDisplayBonusPercent(1)}%)`}
       onClose={onClose}
@@ -151,6 +151,6 @@ export function DisplayModal({
           );
         })}
       </div>
-    </CropPickerModal>
+    </Modal>
   );
 }

@@ -531,8 +531,8 @@ export default function PlayPage() {
     totalCrops < 2;
 
   const receiveGiftSeed = () => {
-    setSeeds((prev) => ({ ...prev, [STARTER_CROP]: prev[STARTER_CROP] + 1 }));
-    pushToast('요정이 조용히 씨앗 주머니 하나를 놓고 갔다.');
+    setSeeds((prev) => ({ ...prev, [STARTER_CROP]: prev[STARTER_CROP] + 5 }));
+    pushToast('요정이 조용히 토마토 씨앗 5개를 놓고 갔다.');
   };
 
   const resetGame = () => {

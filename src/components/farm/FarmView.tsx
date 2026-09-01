@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { CropPickerModal } from '@/components/common/CropPickerModal';
 import { DisplayModal } from '@/components/farm/DisplayModal';
+import { ShopModal } from '@/components/farm/ShopModal';
 import { VillagerModal } from '@/components/farm/VillagerModal';
 import {
   CROPS,
@@ -24,11 +25,6 @@ interface PlotEffect {
   emoji: string;
   kind: 'plant' | 'harvest';
 }
-
-/** 수량 버튼을 길게 눌렀다고 판단하기까지의 시간 (ms) */
-const REPEAT_DELAY = 400;
-/** 길게 누르는 동안 수량이 한 칸씩 바뀌는 간격 (ms) */
-const REPEAT_INTERVAL = 100;
 
 interface FarmViewProps {
   gold: number;
@@ -69,10 +65,7 @@ export function FarmView({
   onTakeFromDisplay,
   onReceiveGiftSeed,
 }: FarmViewProps) {
-  // 씨앗 가게에서 고른 작물과 수량. 저장 대상이 아니라 이 화면에서만 쓰는 값이다
   const [isShopOpen, setIsShopOpen] = useState(false);
-  const [shopCrop, setShopCrop] = useState<CropId | null>(null);
-  const [seedQty, setSeedQty] = useState(1);
   // 심기 모드에서 계속 심을 작물. null이면 심기 모드가 아니다
   const [plantingCrop, setPlantingCrop] = useState<CropId | null>(null);
   // 심기 모드에 들어가며 작물을 고르는 창
@@ -82,13 +75,6 @@ export function FarmView({
   // 심기·수확 연출. 같은 칸을 연달아 눌러도 겹쳐 보이도록 목록으로 들고 있는다
   const [effects, setEffects] = useState<PlotEffect[]>([]);
   const nextEffectId = useRef(0);
-
-  // 길게 누르기용 타이머. 누르기 시작한 뒤의 대기와 그 뒤의 반복을 따로 잡는다
-  const delayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const repeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const seedTotal = shopCrop ? CROPS[shopCrop].seedPrice * seedQty : 0;
-  const canBuy = shopCrop !== null && gold >= seedTotal;
 
   const addEffect = (index: number, emoji: string, kind: PlotEffect['kind']) => {
     const id = nextEffectId.current++;
@@ -116,54 +102,6 @@ export function FarmView({
           {effect.emoji}
         </span>
       ));
-
-  const changeQty = (diff: number) => setSeedQty((q) => Math.max(q + diff, 1));
-
-  const stopRepeat = () => {
-    if (delayTimer.current) clearTimeout(delayTimer.current);
-    if (repeatTimer.current) clearInterval(repeatTimer.current);
-    delayTimer.current = null;
-    repeatTimer.current = null;
-  };
-
-  /*
-   * 누르는 즉시 한 칸 바꾸고, 계속 누르고 있으면 잠시 뒤부터 알아서 이어 바뀐다.
-   * 손을 떼는 곳이 버튼 밖이어도 멈추도록 정지는 창 전체에서 받는다.
-   */
-  const startRepeat = (diff: number) => {
-    stopRepeat();
-    changeQty(diff);
-    delayTimer.current = setTimeout(() => {
-      repeatTimer.current = setInterval(() => changeQty(diff), REPEAT_INTERVAL);
-    }, REPEAT_DELAY);
-  };
-
-  useEffect(() => {
-    window.addEventListener('pointerup', stopRepeat);
-    window.addEventListener('pointercancel', stopRepeat);
-
-    return () => {
-      window.removeEventListener('pointerup', stopRepeat);
-      window.removeEventListener('pointercancel', stopRepeat);
-      stopRepeat();
-    };
-  }, []);
-
-  const openShop = () => {
-    // 창을 열 때마다 고른 작물과 수량을 초기 상태로 되돌린다
-    setShopCrop(null);
-    setSeedQty(1);
-    setIsShopOpen(true);
-  };
-
-  // 여러 번 살 수 있도록 사고 나서도 창을 닫지 않는다.
-  // 다만 고른 작물은 비워 같은 작물을 잘못 연달아 사는 일을 막는다. 수량은 그대로 둔다
-  const buy = () => {
-    if (!shopCrop || !canBuy) return;
-
-    onBuySeed(shopCrop, seedQty);
-    setShopCrop(null);
-  };
 
   // 고른 작물을 들고 심기 모드로 들어간다
   const chooseCrop = (cropId: CropId) => {
@@ -206,7 +144,7 @@ export function FarmView({
           진열대
         </button>
         <button
-          onClick={openShop}
+          onClick={() => setIsShopOpen(true)}
           className="h-10 flex-1 rounded-lg border border-lime-400 bg-lime-200 px-3 text-sm"
         >
           상점
@@ -304,64 +242,18 @@ export function FarmView({
           onClick={onReceiveGiftSeed}
           className="min-h-12 rounded-lg border border-green-300 bg-green-50 py-3 text-sm text-green-800"
         >
-          🍀 요정에게 도움 청하기
+          🍀 요정에게 도움 요청하기
         </button>
       )}
 
       {isShopOpen && (
-        <CropPickerModal
-          title="상점"
-          description={`가진 골드: ${gold.toLocaleString()}골드`}
+        <ShopModal
+          gold={gold}
+          seeds={seeds}
+          cropIds={cropIds}
+          onBuySeed={onBuySeed}
           onClose={() => setIsShopOpen(false)}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            {cropIds.map((cropId) => (
-              <button
-                key={cropId}
-                onClick={() => setShopCrop(cropId)}
-                className={`flex min-h-16 flex-col items-start justify-center gap-0.5 rounded-lg border px-3 py-2 text-sm ${
-                  shopCrop === cropId
-                    ? 'border-green-500 bg-green-50 font-semibold text-green-800'
-                    : 'border-neutral-300'
-                }`}
-              >
-                <span>
-                  {CROP_EMOJI[cropId]} {CROPS[cropId].name} 씨앗
-                </span>
-                <span className="text-xs tabular-nums text-neutral-500">
-                  {CROPS[cropId].seedPrice.toLocaleString()}골드 · 보유{' '}
-                  {seeds[cropId].toLocaleString()}개
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 py-6">
-            <div className="flex gap-1">
-              <button
-                onPointerDown={() => startRepeat(-1)}
-                disabled={seedQty <= 1}
-                className="h-11 w-11 shrink-0 select-none touch-manipulation rounded-lg border border-neutral-300 text-lg disabled:opacity-40"
-              >
-                −
-              </button>
-              <span className="w-full my-auto text-center tabular-nums">{seedQty.toLocaleString()}</span>
-              <button
-                onPointerDown={() => startRepeat(1)}
-                className="h-11 w-11 shrink-0 select-none touch-manipulation rounded-lg border border-neutral-300 text-lg"
-              >
-                +
-              </button>
-            </div>
-            <button
-              onClick={buy}
-              disabled={!canBuy}
-              className="h-11 flex-1 rounded-lg bg-green-600 px-3 text-sm font-semibold text-white disabled:bg-neutral-300"
-            >
-              {shopCrop ? `${seedTotal.toLocaleString()}골드에 사기` : '작물 선택'}
-            </button>
-          </div>
-        </CropPickerModal>
+        />
       )}
 
       {isSeedPickerOpen && (

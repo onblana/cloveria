@@ -158,6 +158,31 @@ export function FarmView({
       </div>
 
       <section>
+        <div className={`mt-2 items-center ${
+          plantingCrop
+            ? 'grid grid-cols-2 justify-between gap-2'
+            : 'flex justify-center'
+        }`}
+        >
+          {plantingCrop
+            ? <h2 className="ml-1 text-center font-bold text-sm text-green-700">
+              {CROPS[plantingCrop].name} 씨앗 심는 중
+            </h2>
+            : <span></span>
+          }
+          <button
+            onClick={() =>
+              plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
+            }
+            className={`h-10 shrink-0 rounded-lg border text-sm px-3 mb-1 ${
+              plantingCrop
+                ? 'border-neutral-300 bg-gray-50 font-semibold text-green-800'
+                : 'border-neutral-300 bg-green-800 font-bold text-white px-22'
+            }`}
+          >
+            {plantingCrop ? '심기 종료' : '씨앗 심기'}
+          </button>
+        </div>
         <div className="grid grid-cols-5 gap-1">
           {plots.map((plot, index) => {
             if (!plot) {
@@ -212,26 +237,6 @@ export function FarmView({
               </div>
             );
           })}
-        </div>
-        <div className="mt-2 grid grid-cols-2 items-center justify-between gap-2">
-          {plantingCrop
-            ? <h2 className="ml-1 text-center font-bold text-sm text-green-700">
-              {CROPS[plantingCrop].name} 씨앗 심는 중
-            </h2>
-            : <span></span>
-          }
-          <button
-            onClick={() =>
-              plantingCrop ? setPlantingCrop(null) : setIsSeedPickerOpen(true)
-            }
-            className={`h-10 shrink-0 rounded-lg border text-sm px-3 mb-1 ${
-              plantingCrop
-                ? 'border-neutral-300 bg-gray-50 font-semibold text-green-800'
-                : 'border-neutral-300 bg-green-800 font-bold text-white'
-            }`}
-          >
-            {plantingCrop ? '심기 종료' : '씨앗 심기'}
-          </button>
         </div>
       </section>
 
